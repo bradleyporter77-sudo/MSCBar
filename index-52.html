@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>Morningside Bar</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<style>
+:root{--bg:#0c1a2e;--sf:#152030;--s2:#080f1c;--bd:#1e3048;--hv:#1a304a;--gd:#E8801A;--gn:#2096CC;--mt:#7090aa;--tx:#f0f4f8;--dn:#e05555;--db:#2a1212;--dd:#4a2222;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--tx);font-family:Georgia,serif;min-height:100vh;}
+button{font-family:Georgia,serif;cursor:pointer;border:none;transition:all .15s;}
+input,select{font-family:Georgia,serif;}
+.scr{height:100dvh;max-height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
+.tbar{background:var(--s2);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:10;flex-shrink:0;}
+.scroll{flex:1 1 0;overflow-y:auto;padding:12px;min-height:0;}
+.bbar{background:var(--s2);border-top:1px solid var(--bd);padding:10px 14px;flex-shrink:0;}
+.lwrap{height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;overflow-y:auto;}
+.club-name{color:var(--gn);font-size:26px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;}
+.club-sub{color:var(--gd);font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;}
+.club-tag{color:var(--mt);font-size:11px;letter-spacing:3px;text-transform:uppercase;margin-top:4px;}
+.club-bar{color:var(--bg);font-size:12px;background:var(--gd);border-radius:20px;padding:4px 16px;margin-top:8px;display:inline-block;letter-spacing:2px;text-transform:uppercase;font-weight:bold;}
+.pin-box{width:100%;max-width:340px;text-align:center;}
+.pin-prompt{color:var(--mt);font-size:13px;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;}
+.pin-dots{display:flex;gap:14px;margin:0 auto 14px;justify-content:center;}
+.pin-dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--gd);}
+.pin-dot.on{background:var(--gd);}
+.pin-err{color:var(--dn);font-size:14px;text-align:center;margin-bottom:10px;}
+.pin-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;text-align:center;}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:320px;margin:0 auto;}
+.nk{background:var(--sf);border:1px solid var(--bd);border-radius:14px;padding:20px 10px;font-size:24px;color:var(--tx);width:100%;text-align:center;}
+.nk:active{background:var(--gd);color:var(--bg);}
+.reg-link{width:100%;max-width:320px;margin:16px auto 0;background:var(--sf);color:var(--gn);border:1px solid var(--gn);border-radius:12px;padding:16px;font-size:17px;display:block;font-family:Georgia,serif;cursor:pointer;}
+.admin-link{width:100%;max-width:320px;margin:8px auto 0;background:var(--sf);color:var(--mt);border:1px solid var(--bd);border-radius:12px;padding:16px;font-size:17px;display:block;font-family:Georgia,serif;cursor:pointer;}
+.reg-title{color:var(--gd);font-size:22px;font-weight:bold;margin-bottom:8px;}
+.reg-sub{color:var(--mt);font-size:13px;margin-bottom:20px;max-width:280px;}
+.menu-cat{color:var(--gd);font-size:11px;text-transform:uppercase;letter-spacing:2px;padding:10px 4px 4px;border-bottom:1px solid var(--bd);margin-bottom:4px;}
+.menu-item{display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid rgba(30,48,72,.4);}
+.menu-item:last-child{border-bottom:none;}
+.menu-iname{color:var(--tx);font-size:14px;}
+.menu-isize{color:var(--mt);font-size:12px;}
+.price-m{color:var(--gd);font-weight:bold;font-size:14px;}
+.price-nm{color:var(--mt);font-size:13px;}
+.tog{display:flex;background:var(--sf);border-radius:20px;padding:3px;border:1px solid var(--bd);}
+.tb{background:transparent;color:var(--mt);border-radius:17px;padding:6px 11px;font-size:11px;}
+.tb.on{background:var(--gd);color:var(--bg);font-weight:bold;}
+.tblg{padding:7px 13px;font-size:12px;}
+.tabs{display:flex;background:var(--s2);border-bottom:1px solid var(--bd);overflow-x:auto;flex-shrink:0;}
+.tab{background:transparent;color:var(--mt);border-bottom:3px solid transparent;padding:14px 18px;font-size:17px;white-space:nowrap;font-weight:bold;}
+.tab.on{color:var(--gd);border-bottom-color:var(--gd);}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.pb{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:11px 10px;text-align:left;width:100%;}
+.pb:active{background:var(--hv);}
+.pn{color:var(--tx);font-size:14px;line-height:1.3;}
+.ps{color:var(--mt);font-size:12px;margin-top:2px;}
+.pp{color:var(--gd);font-weight:bold;font-size:20px;margin-top:6px;}
+.px{color:#4a7a9a;font-size:11px;margin-top:2px;}
+.wg{color:var(--mt);font-size:11px;text-transform:uppercase;letter-spacing:2px;margin:8px 0 6px;}
+.oi{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bd);}
+.on2{font-size:13px;flex:1;padding-right:6px;}
+.qc{display:flex;align-items:center;gap:6px;}
+.qb{background:var(--sf);color:var(--tx);border-radius:5px;width:26px;height:26px;font-size:15px;display:flex;align-items:center;justify-content:center;}
+.qn{color:var(--gd);min-width:22px;text-align:center;font-weight:bold;}
+.it{color:var(--gd);min-width:44px;text-align:right;font-size:14px;font-weight:bold;}
+.xb{background:transparent;color:var(--dn);font-size:18px;padding:0 4px;}
+.of{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;}
+.grand{color:var(--gd);font-weight:bold;font-size:24px;}
+.done{background:var(--gd);color:var(--bg);border-radius:12px;padding:12px 22px;font-size:16px;font-weight:bold;letter-spacing:1px;}
+.olist{max-height:160px;overflow-y:auto;margin-bottom:10px;}
+.fov{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:100;}
+.fc{background:var(--sf);border:2px solid var(--gd);border-radius:24px;padding:28px;text-align:center;width:88%;max-width:340px;}
+.rc{background:var(--sf);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--bd);}
+.rct{color:var(--gd);font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;}
+.sgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center;}
+.sb{background:var(--bg);border-radius:10px;padding:18px 6px;}
+.sv{font-size:28px;font-weight:bold;}
+.sl{font-size:12px;color:var(--mt);margin-top:6px;text-transform:uppercase;letter-spacing:1px;}
+.rr{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--bd);}
+.rr:last-child{border-bottom:none;}
+.rn{font-size:13px;flex:1;padding-right:8px;}
+.rv{color:var(--gd);font-weight:bold;}
+.endb{width:100%;background:var(--db);color:var(--dn);border:1px solid var(--dd);border-radius:12px;padding:15px;font-size:14px;margin-top:10px;}
+.ib{background:var(--sf);color:var(--mt);border:1px solid var(--bd);border-radius:8px;padding:9px 14px;font-size:15px;}
+.ldg{text-align:center;padding:40px;color:var(--mt);font-size:16px;}
+.err{background:var(--db);color:var(--dn);border:1px solid var(--dd);border-radius:10px;padding:14px;margin-bottom:12px;font-size:14px;}
+.vl{color:var(--mt);font-size:11px;text-transform:uppercase;letter-spacing:1px;}
+.vn{color:var(--gd);font-weight:bold;font-size:15px;}
+.chg-lbl{color:var(--mt);font-size:12px;text-transform:uppercase;letter-spacing:1px;}
+.chg-val{font-size:44px;font-weight:bold;margin-top:4px;}
+.chg-val.gold{color:var(--gd);}
+.chg-val.pos{color:var(--gn);}
+.chg-val.neg{color:var(--dn);}
+.atabs{display:flex;background:var(--s2);border-bottom:1px solid var(--bd);flex-shrink:0;}
+.atab{flex:1;background:transparent;color:var(--mt);border-bottom:2px solid transparent;padding:12px 8px;font-size:13px;text-align:center;}
+.atab.on{color:var(--gd);border-bottom-color:var(--gd);}
+.pitem{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:8px;}
+.pbtns{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.ebtn{background:var(--hv);color:var(--gn);border:1px solid var(--bd);border-radius:8px;padding:6px 14px;font-size:13px;}
+.dbtn{background:var(--db);color:var(--dn);border:1px solid var(--dd);border-radius:8px;padding:6px 14px;font-size:13px;}
+.rbtn{background:var(--hv);color:var(--gd);border:1px solid var(--bd);border-radius:8px;padding:6px 14px;font-size:13px;}
+.add-pbtn{width:100%;background:var(--hv);color:var(--gd);border:1px dashed var(--gd);border-radius:10px;padding:14px;font-size:14px;margin-bottom:16px;}
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:flex-end;}
+.modal-card{background:var(--sf);border-radius:20px 20px 0 0;padding:20px;width:100%;max-height:90vh;overflow-y:auto;}
+.frow{margin-bottom:12px;}
+.flbl{color:var(--mt);font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.finp{width:100%;padding:12px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:15px;outline:none;}
+.fsel{width:100%;padding:12px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:15px;outline:none;}
+.frow2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.save-btn{width:100%;background:var(--gd);color:var(--bg);border-radius:10px;padding:14px;font-size:16px;font-weight:bold;margin-top:8px;}
+.cancel-btn{width:100%;background:transparent;color:var(--mt);border:1px solid var(--bd);border-radius:10px;padding:12px;font-size:14px;margin-top:8px;}
+.date-item{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;width:100%;}
+.date-item:active{background:var(--hv);}
+.co-card{background:var(--sf);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--bd);}
+.co-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--bd);}
+.co-row:last-child{border-bottom:none;}
+.co-lbl{color:var(--mt);font-size:14px;}
+.co-val{font-size:18px;font-weight:bold;}
+.co-inp{width:100%;padding:16px;border-radius:10px;border:2px solid var(--gd);background:var(--bg);color:var(--gd);font-size:28px;font-weight:bold;outline:none;text-align:center;margin-bottom:8px;}
+.co-btn{width:100%;background:var(--hv);color:var(--gn);border:1px solid var(--bd);border-radius:12px;padding:15px;font-size:14px;margin-bottom:10px;}
+.ok-msg{color:var(--gn);text-align:center;padding:10px;font-size:14px;margin-bottom:10px;}
+.over{color:var(--gn);}
+.short{color:var(--dn);}
+.sec-lbl{color:var(--mt);font-size:11px;text-transform:uppercase;letter-spacing:2px;margin:16px 0 8px 2px;}
+.back-btn{background:transparent;color:var(--mt);font-size:14px;padding:4px 0;margin-bottom:12px;display:block;}
+.vol-item{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:12px 16px;margin-bottom:8px;}
+.arow{display:flex;gap:8px;margin-top:4px;}
+.ainp{flex:1;padding:13px 16px;border-radius:10px;border:1px solid var(--bd);background:var(--sf);color:var(--tx);font-size:15px;outline:none;}
+.ago{background:var(--gd);color:var(--bg);border-radius:10px;padding:13px 18px;font-size:15px;font-weight:bold;}
+
+.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.cat-tile{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:12px 8px;text-align:center;width:100%;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.cat-tile:active{background:var(--hv);border-color:var(--gd);}
+.cat-tile-icon{font-size:24px;}
+.cat-tile-name{color:var(--gd);font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;}
+.cat-tile-count{color:var(--mt);font-size:11px;}
+.cat-tile-range{color:var(--tx);font-size:12px;font-weight:bold;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+firebase.initializeApp({apiKey:"AIzaSyB9-Drv7wccU-NrFu-g4e6OT6d9uEpvjSg",authDomain:"morningside-bar.firebaseapp.com",projectId:"morningside-bar",storageBucket:"morningside-bar.firebasestorage.app",messagingSenderId:"331659380533",appId:"1:331659380533:web:b89e55c8c28a388fc12e7c"});
+const db=firebase.firestore();
+const SEED=[
+{cat:"beer",id:"hq",n:"Hansa",s:"Quart",m:45,p:52,x:"Bottle",ord:1},
+{cat:"beer",id:"cl",n:"Castle Lite",s:"Quart",m:45,p:52,x:"Bottle",ord:2},
+{cat:"beer",id:"wh",n:"Windhoek",s:"Quart",m:45,p:52,x:"Bottle",ord:3},
+{cat:"beer",id:"am",n:"Amstel",s:"Quart",m:45,p:52,x:"Bottle",ord:4},
+{cat:"beer",id:"ll",n:"Lion Lager",s:"Quart",m:45,p:52,x:"Bottle",ord:5},
+{cat:"beer",id:"ff",n:"Flying Fish",s:"330ml",m:30,p:35,x:"Can/Bottle",ord:6},
+{cat:"spirits",id:"cns",n:"Cane",s:"Single",m:25,p:29,x:"Mix incl",ord:1,grp:"cane",tot:1},
+{cat:"spirits",id:"cnd",n:"Cane",s:"Double",m:45,p:52,x:"Mix incl",ord:2,grp:"cane",tot:2},
+{cat:"spirits",id:"brs",n:"Brandy",s:"Single",m:25,p:29,x:"Mix incl",ord:3,grp:"brandy",tot:1},
+{cat:"spirits",id:"brd",n:"Brandy",s:"Double",m:45,p:52,x:"Mix incl",ord:4,grp:"brandy",tot:2},
+{cat:"spirits",id:"cms",n:"Capt Morgan",s:"Single",m:25,p:29,x:"Mix incl",ord:5,grp:"captmorgan",tot:1},
+{cat:"spirits",id:"cmd",n:"Capt Morgan",s:"Double",m:45,p:52,x:"Mix incl",ord:6,grp:"captmorgan",tot:2},
+{cat:"spirits",id:"vks",n:"Vodka",s:"Single",m:25,p:29,x:"Mix incl",ord:7,grp:"vodka",tot:1},
+{cat:"spirits",id:"vkd",n:"Vodka",s:"Double",m:45,p:52,x:"Mix incl",ord:8,grp:"vodka",tot:2},
+{cat:"spirits",id:"bls",n:"Bells",s:"Single",m:25,p:29,x:"Mix incl",ord:9,grp:"bells",tot:1},
+{cat:"spirits",id:"bld",n:"Bells",s:"Double",m:45,p:52,x:"Mix incl",ord:10,grp:"bells",tot:2},
+{cat:"spirits",id:"jbs",n:"J and B",s:"Single",m:25,p:29,x:"Mix incl",ord:11,grp:"jb",tot:1},
+{cat:"spirits",id:"jbd",n:"J and B",s:"Double",m:45,p:52,x:"Mix incl",ord:12,grp:"jb",tot:2},
+{cat:"spirits",id:"gns",n:"Gin",s:"Single",m:30,p:35,x:"Mix incl",ord:13,grp:"gin",tot:1},
+{cat:"spirits",id:"gnd",n:"Gin",s:"Double",m:55,p:64,x:"Mix incl",ord:14,grp:"gin",tot:2},
+{cat:"spirits",id:"jms",n:"Jameson",s:"Single",m:30,p:35,x:"Mix incl",ord:15,grp:"jameson",tot:1},
+{cat:"spirits",id:"jmd",n:"Jameson",s:"Double",m:55,p:64,x:"Mix incl",ord:16,grp:"jameson",tot:2},
+{cat:"spirits",id:"jgs",n:"Jagermeister",s:"Single",m:25,p:29,x:"No mix",ord:17,grp:"jager",tot:1},
+{cat:"spirits",id:"jgd",n:"Jagermeister",s:"Double",m:45,p:52,x:"No mix",ord:18,grp:"jager",tot:2},
+{cat:"ciders",id:"svd",n:"Savanna Dry",s:"",m:30,p:35,x:"Can/Bottle",ord:1},
+{cat:"ciders",id:"svl",n:"Savanna Lemon",s:"",m:30,p:35,x:"Can/Bottle",ord:2},
+{cat:"minerals",id:"mnc",n:"Minerals Can",s:"300ml",m:20,p:23,x:"",ord:1},
+{cat:"minerals",id:"ckm",n:"Coke",s:"Mix",m:10,p:12,x:"Mixer",ord:2},
+{cat:"minerals",id:"ck2",n:"Coke",s:"2lt Bottle",m:40,p:46,x:"",ord:3},
+{cat:"minerals",id:"dcm",n:"Diet Coke",s:"Mix",m:10,p:12,x:"Mixer",ord:4},
+{cat:"minerals",id:"dc2",n:"Diet Coke",s:"2lt Bottle",m:40,p:46,x:"",ord:5},
+{cat:"minerals",id:"sdm",n:"Soda",s:"Mix",m:10,p:12,x:"Mixer",ord:6},
+{cat:"minerals",id:"sd2",n:"Soda",s:"2lt Bottle",m:35,p:41,x:"",ord:7},
+{cat:"minerals",id:"tnm",n:"Tonic",s:"Mix",m:10,p:12,x:"Mixer",ord:8},
+{cat:"minerals",id:"tn1",n:"Tonic",s:"1lt Bottle",m:30,p:35,x:"",ord:9},
+{cat:"minerals",id:"wt1",n:"Water",s:"1lt Bottle",m:15,p:18,x:"",ord:10},
+{cat:"wine",id:"avm",n:"Alvis Drift Merlot",s:"Red",m:125,p:144,x:"bottle",ord:1},
+{cat:"wine",id:"jcm",n:"Jordan Chameleon Merlot",s:"Red",m:150,p:173,x:"bottle",ord:2},
+{cat:"wine",id:"prc",n:"Porcupine Ridge Cab Sav",s:"Red",m:120,p:138,x:"bottle",ord:3},
+{cat:"wine",id:"dtc",n:"DuToit Kloof Cab Sav",s:"Red",m:140,p:161,x:"bottle",ord:4},
+{cat:"wine",id:"avc",n:"Alvis Drift Cab Sav",s:"Red",m:135,p:156,x:"bottle",ord:5},
+{cat:"wine",id:"ndb",n:"Nederburg Baronne",s:"Red",m:160,p:184,x:"bottle",ord:6},
+{cat:"wine",id:"avs",n:"Alvis Drift Sav Blanc",s:"White",m:120,p:138,x:"bottle",ord:7},
+{cat:"wine",id:"pts",n:"Protea Sav Blanc",s:"White",m:150,p:173,x:"bottle",ord:8},
+{cat:"wine",id:"dhs",n:"Durbanville Hills Sav Blanc",s:"White",m:160,p:184,x:"bottle",ord:9},
+{cat:"wine",id:"sps",n:"Spier Sav Blanc",s:"White",m:170,p:196,x:"bottle",ord:10},
+{cat:"wine",id:"avr",n:"Alvis Drift Pinotage Rose",s:"Rose",m:135,p:156,x:"bottle",ord:11},
+{cat:"wine",id:"ptr",n:"Protea Rose",s:"Rose",m:150,p:173,x:"bottle",ord:12}
+];
+const DEF_VOLS=["Andre","Johan","Pieter","Thabo","Sipho"];
+const CATS=[{id:"beer",i:"🍺",l:"Beer"},{id:"spirits",i:"🥃",l:"Spirits"},{id:"ciders",i:"🍎",l:"Ciders"},{id:"minerals",i:"🥤",l:"Minerals"},{id:"wine",i:"🍷",l:"Wine"},{id:"food",i:"🍕",l:"Food"}];
+let S={screen:"loading",vol:"",volId:"",pinInput:"",loginErr:false,regStep:0,regName:"",regVolId:"",regPin1:"",regPin2:"",regErr:"",regInviteCode:"",mem:true,cat:"beer",order:[],pay:"Cash",flash:false,famt:0,serr:false,products:[],changeSale:0,changePaid:"",coExpected:0,coActual:0,coSaved:false,esLoading:false,esSales:[],esActual:0,esSaved:false,sales:[],lrpt:false,rerr:false,allDates:[],selDate:null,ldDates:false,adminPinInput:"",adminPinErr:false,aSection:"products",editProd:null,newProdMode:false,editProdData:{cat:"beer",n:"",s:"",m:"",p:"",x:""},adminList:[],adminVolList:null,inactivityModal:false,menuCat:null,confirmEndShift:false,poscat:null,adminProdCat:null,spiritStock:{},reportMode:'vol',confirmPayModal:false,logModal:false,rosterModal:false,shifts:[],rosterAdminMode:false,rosterOffset:0,selectMode:false,selectedSales:[]};
+const set=p=>{Object.assign(S,p);render();};
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const tod=()=>new Date().toLocaleDateString("en-ZA");
+const tim=()=>new Date().toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"});
+const tot=()=>S.order.reduce((a,i)=>a+i.price*i.qty,0);
+const gp=it=>S.mem?it.m:it.p;
+const catP=()=>S.products.filter(p=>p.cat===S.cat).sort((a,b)=>a.n.localeCompare(b.n));
+const loginByPin=async pin=>{const s=await db.collection("volunteers").where("pin","==",pin).get();if(s.empty)return null;const d=s.docs[0];return{id:d.id,...d.data()};};
+const pinTaken=async pin=>!(await db.collection("volunteers").where("pin","==",pin).get()).empty;
+const volByName=async name=>{const s=await db.collection("volunteers").where("name","==",name).get();if(s.empty)return null;const d=s.docs[0];return{id:d.id,...d.data()};};
+const setVolPin=(id,pin)=>db.collection("volunteers").doc(id).update({pin});
+const resetVolPin=id=>db.collection("volunteers").doc(id).update({pin:null});
+const saveSale=async s=>db.collection("sales").add({...s,date:tod(),ts:firebase.firestore.FieldValue.serverTimestamp()});
+const loadByDate=async d=>(await db.collection("sales").where("date","==",d).get()).docs.map(x=>({id:x.id,...x.data()}));
+const loadDates=async()=>{const s=await db.collection("sales").get();const m={};s.docs.forEach(d=>{const x=d.data();if(x.voided)return;if(!m[x.date])m[x.date]=0;m[x.date]+=x.total;});return Object.entries(m).map(([d,t])=>({d,t})).sort((a,b)=>b.d.localeCompare(a.d));};
+const loadVols=async()=>(await db.collection("volunteers").orderBy("ord").get()).docs.map(d=>({id:d.id,...d.data()}));
+const addVol=async n=>{const r=await db.collection("volunteers").add({name:n,pin:null,ord:Date.now()});return{id:r.id,name:n,pin:null};};
+const delVol=id=>db.collection("volunteers").doc(id).delete();
+const loadProds=async()=>(await db.collection("products").get()).docs.map(d=>({id:d.id,...d.data()}));
+const seedProds=async()=>{const b=db.batch();SEED.forEach(p=>{b.set(db.collection("products").doc(p.id),p);});await b.commit();};
+const saveProd=async p=>{if(p.id){const{id,...d}=p;await db.collection("products").doc(id).update({...d,m:Number(p.m),p:Number(p.p)});}else{await db.collection("products").add({...p,m:Number(p.m),p:Number(p.p),ord:Date.now()});}};
+const delProd=id=>db.collection("products").doc(id).delete();
+const checkAdminPin=async pin=>!(await db.collection("admins").where("pin","==",pin).get()).empty;
+const loadAdmins=async()=>(await db.collection("admins").get()).docs.map(d=>({id:d.id,...d.data()}));
+const addAdmin=(n,p)=>db.collection("admins").add({name:n,pin:p});
+const delAdmin=id=>db.collection("admins").doc(id).delete();
+const voidSaleDb=(id,by)=>db.collection("sales").doc(id).update({voided:true,voidedBy:by,voidedAt:firebase.firestore.FieldValue.serverTimestamp()});
+const unvoidSaleDb=id=>db.collection("sales").doc(id).update({voided:false,voidedBy:firebase.firestore.FieldValue.delete(),voidedAt:firebase.firestore.FieldValue.delete()});
+const SPIRIT_GRP_MAP={cns:{grp:"cane",tot:1},cnd:{grp:"cane",tot:2},brs:{grp:"brandy",tot:1},brd:{grp:"brandy",tot:2},cms:{grp:"captmorgan",tot:1},cmd:{grp:"captmorgan",tot:2},vks:{grp:"vodka",tot:1},vkd:{grp:"vodka",tot:2},bls:{grp:"bells",tot:1},bld:{grp:"bells",tot:2},jbs:{grp:"jb",tot:1},jbd:{grp:"jb",tot:2},gns:{grp:"gin",tot:1},gnd:{grp:"gin",tot:2},jms:{grp:"jameson",tot:1},jmd:{grp:"jameson",tot:2},jgs:{grp:"jager",tot:1},jgd:{grp:"jager",tot:2}};
+const SPIRIT_GROUPS=[...new Set(Object.values(SPIRIT_GRP_MAP).map(x=>x.grp))];
+const TOTS_PER_BOTTLE=30;
+const CHANGELOG=[
+  {v:"1.20",date:"20 Jun 2026",changes:["Volunteer roster refinements — all 8 upcoming Fridays shown","Volunteer count shown on admin Friday grid tiles","Admin shift list with full volunteer names","Individual volunteer removal by admin (✕ Remove)","Confirmation dialog before signing up for a shift","Volunteers locked in once signed up — admin removes if needed"]},
+  {v:"1.19",date:"20 Jun 2026",changes:["ICS calendar export fixed — SAST timezone (Africa/Johannesburg)","Required calendar fields added (UID, DTSTAMP, CALSCALE)","60-minute shift reminder included in calendar event","Fallback download method for all Android browsers"]},
+  {v:"1.18",date:"20 Jun 2026",changes:["Volunteer roster — 📅 button on welcome screen and POS","Admin Friday grid — tap any Friday to schedule (16:30–22:00 default)","Add Special Date button for Saturdays and events","Volunteer sign-up with Add to Calendar (Google, Outlook, Samsung)"]},
+  {v:"1.17",date:"20 Jun 2026",changes:["Magic link volunteer onboarding — 📨 Invite button per volunteer","Admin generates invite link to send via WhatsApp","Volunteer taps link — taken straight to PIN registration","Invite expires once used — logged in activity log"]},
+  {v:"1.16",date:"20 Jun 2026",changes:["Activity log and changelog accessible via 📋 in admin topbar","Operational log loads from Firebase on demand","All key events tracked: sales, voids, stock changes, logins, cashouts"]},
+  {v:"1.15",date:"20 Jun 2026",changes:["Custom aloe SVG logo replacing leaf emoji","Login screen and welcome screen updated","Orange flower spike ties into club colour scheme"]},
+  {v:"1.14",date:"20 Jun 2026",changes:["Food category added to POS","Wine subcategories: Red, White, Rosé, Champagne","Alphabetical sorting throughout POS and admin"]},
+  {v:"1.13",date:"20 Jun 2026",changes:["Payment confirmation popup before sale","Out-of-stock products blocked from POS","Admin delete individual sales","Select and batch delete in reports"]},
+  {v:"1.12",date:"20 Jun 2026",changes:["Void sales — keeps record, reverses stock","Un-void capability for admin","Admin reports access via 📊 button","Voided sales excluded from totals and cashup"]},
+  {v:"1.11",date:"19 Jun 2026",changes:["Spirit bottle stock tracking (750ml = 30 tots)","Shared tot pool per spirit — singles and doubles draw from same bottle","Admin +/- bottle and Set Tots controls","Stock auto-decrements on every sale"]},
+  {v:"1.10",date:"18 Jun 2026",changes:["2026 price list update across all categories","Minerals split into Mix and Bottle prices","New wines added (Jordan Chameleon, Protea, Spier)","Reset to Updated Price List button in admin"]},
+  {v:"1.9",date:"14 Jun 2026",changes:["Stock quantity tracking per product","Admin +/- and Set buttons for stock levels","Low stock and out-of-stock indicators on POS"]},
+  {v:"1.8",date:"13 Jun 2026",changes:["Category hero tiles in POS replaces horizontal tabs","Admin products category overview tiles","Two-step logout via phone back button","Consistent text sizes throughout"]},
+  {v:"1.7",date:"11 Jun 2026",changes:["Post-login welcome screen with START SERVING button","Price list removed from welcome screen","Admin back button protection"]},
+  {v:"1.6",date:"10 Jun 2026",changes:["Migrated from Netlify to Vercel","PIN-only login — no name list","Volunteer self-registration with PIN","Admin PIN reset for volunteers","30-minute inactivity prompt","MSC orange and blue colour scheme"]},
+  {v:"1.5",date:"09 Jun 2026",changes:["End Shift two-step confirmation","POS layout redesigned with larger sections","Category tabs replaced with product stream heroes"]},
+  {v:"1.4",date:"04 Jun 2026",changes:["Admin panel: Products, Volunteers, Admins tabs","Product add, edit and delete","Price history and reports by date/volunteer/product","Cashout and end shift flow"]},
+  {v:"1.3",date:"01 Jun 2026",changes:["Member and Non-Member pricing with 15% premium","Cash and Zapper payment tracking","Change calculator for cash sales"]},
+  {v:"1.2",date:"31 May 2026",changes:["Firebase Firestore integration","Sales recording and reporting","Volunteer PIN authentication"]},
+  {v:"1.1",date:"May 2026",changes:["Initial app build — basic POS","Beer, Spirits, Ciders, Minerals, Wine categories","Morningside Sports Club branding"]}
+];
+
+const loadShifts=async()=>{const snap=await db.collection("shifts").orderBy("date","asc").limit(30).get();const today=tod();return snap.docs.map(d=>({id:d.id,...d.data()})).filter(s=>s.date>=today);};
+const createShift=shift=>db.collection("shifts").add({...shift,volunteers:[],createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+const deleteShift=id=>db.collection("shifts").doc(id).delete();
+const joinShift=(id,name)=>db.collection("shifts").doc(id).update({volunteers:firebase.firestore.FieldValue.arrayUnion(name)});
+const leaveShift=(id,name)=>db.collection("shifts").doc(id).update({volunteers:firebase.firestore.FieldValue.arrayRemove(name)});
+const createInvite=async(volId,name)=>{const code=Math.random().toString(36).substr(2,8).toUpperCase();await db.collection("invites").doc(code).set({name,volId,used:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});return code;};
+const getInvite=async code=>{const d=await db.collection("invites").doc(code).get();return d.exists?{id:d.id,...d.data()}:null;};
+const useInvite=code=>db.collection("invites").doc(code).update({used:true,usedAt:firebase.firestore.FieldValue.serverTimestamp()});
+const addLog=(icon,by,detail)=>{try{db.collection("activityLog").add({icon,by,detail,date:tod(),time:tim(),ts:firebase.firestore.FieldValue.serverTimestamp()});}catch(e){console.warn("Log error:",e);}};
+const loadLog=async(n=100)=>{const snap=await db.collection("activityLog").limit(n).get();return snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>((b.ts&&b.ts.seconds)||0)-((a.ts&&a.ts.seconds)||0));};
+
+const loadSpiritStock=async()=>{const snap=await db.collection("spiritStock").get();const m={};snap.docs.forEach(d=>m[d.id]=d.data().tots||0);return m;};
+const ensureSpiritStockDocs=async()=>{const existing=await loadSpiritStock();const batch=db.batch();let changed=false;SPIRIT_GROUPS.forEach(g=>{if(!(g in existing)){batch.set(db.collection("spiritStock").doc(g),{tots:0});changed=true;}});if(changed)await batch.commit();};
+const ensureSpiritGrpFields=async()=>{const snap=await db.collection("products").where("cat","==","spirits").get();const batch=db.batch();let changed=false;snap.docs.forEach(d=>{const data=d.data();const map=SPIRIT_GRP_MAP[d.id];if(map&&data.grp===undefined){batch.update(d.ref,{grp:map.grp,tot:map.tot});changed=true;}});if(changed)await batch.commit();return changed;};
+const setSpiritTots=(g,val)=>db.collection("spiritStock").doc(g).set({tots:val},{merge:true});
+function render(){
+  const el=document.getElementById("app");
+  const sc={loading:rLoading,login:rLogin,register:rRegister,menu:rMenu,pos:rPOS,change:rChange,cashout:rCashout,endshift:rEndShift,report:rReport,adminPin:rAdminPin,admin:rAdmin,log:rLog};
+  el.innerHTML=(sc[S.screen]||rLogin)();
+    if(S.confirmPayModal){const _t=S.order.reduce((a,i)=>a+i.price*i.qty,0);el.innerHTML+=`<div class="fov"><div class="fc"><div style="color:var(--gd);font-size:22px;font-weight:bold;margin-bottom:6px">Confirm Payment</div><div style="color:var(--mt);font-size:14px;margin-bottom:4px">Total</div><div style="color:var(--gd);font-size:40px;font-weight:bold;margin-bottom:24px">R${_t}</div><button style="width:100%;background:var(--gd);color:var(--bg);border:none;border-radius:12px;padding:16px;font-size:18px;font-weight:bold;font-family:Georgia,serif;cursor:pointer;margin-bottom:10px;" data-a="confirmPay" data-pay="Cash">💵 Cash</button><button style="width:100%;background:var(--sf);color:var(--tx);border:1px solid var(--bd);border-radius:12px;padding:16px;font-size:18px;font-family:Georgia,serif;cursor:pointer;margin-bottom:10px;" data-a="confirmPay" data-pay="Zapper">📱 Zapper</button><button style="width:100%;background:transparent;color:var(--mt);border:none;padding:10px;font-size:14px;font-family:Georgia,serif;cursor:pointer;" data-a="cancelPay">Cancel</button></div></div>`;}
+  if(S.logModal){
+    try{
+      let _ch="";
+      for(var _i=0;_i<CHANGELOG.length;_i++){
+        var _e=CHANGELOG[_i];
+        var _li="";
+        for(var _j=0;_j<_e.changes.length;_j++){_li+="<div style='color:var(--tx);font-size:13px;padding:3px 0 3px 12px;border-left:2px solid var(--gd);margin-bottom:2px;'>• "+_e.changes[_j]+"</div>";}
+        _ch+="<div style='margin-bottom:16px;'><div style='display:flex;justify-content:space-between;margin-bottom:6px;'><span style='color:var(--gd);font-size:15px;font-weight:bold'>v"+_e.v+"</span><span style='color:var(--mt);font-size:12px'>"+_e.date+"</span></div>"+_li+"</div>";
+      }
+      var _al=S.activityLog||[];var _act=S.logLoading?"<div class='ldg'>Loading...</div>":_al.length?(()=>{var _g={};_al.forEach(function(e){if(!_g[e.date])_g[e.date]=[];_g[e.date].push(e);});return Object.keys(_g).sort(function(a,b){return b.localeCompare(a);}).map(function(date){return"<div style='color:var(--mt);font-size:11px;text-transform:uppercase;letter-spacing:2px;margin:12px 0 6px;'>"+date+"</div>"+_g[date].map(function(e){return"<div style='display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd);'><span style='font-size:16px;flex-shrink:0;'>"+( e.icon||"📝")+"</span><div><div style='color:var(--tx);font-size:13px;'>"+( e.detail||"")+"</div><div style='color:var(--mt);font-size:11px;margin-top:2px;'>"+( e.time||"")+" — "+(e.by||"")+"</div></div></div>";}).join("");}).join("");})():"<div style='text-align:center;padding:16px;'><button style='background:var(--sf);color:var(--gd);border:1px solid var(--bd);border-radius:10px;padding:12px 20px;font-size:15px;font-family:Georgia,serif;cursor:pointer;' data-a='loadActivity'>📋 Load Activity</button></div>";
+      el.innerHTML+="<div style='position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;flex-direction:column;overflow:hidden;'><div style='background:var(--s2);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bd);flex-shrink:0;'><span style='color:var(--gd);font-weight:bold;font-size:18px;'>📋 Log</span><button class='ib' data-a='closeLog'>✕ Close</button></div><div style='flex:1;overflow-y:auto;padding:16px;'><div style='color:var(--gd);font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;'>📋 Activity</div>"+_act+"<div style='color:var(--gd);font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;margin:20px 0 12px;'>🔧 Changelog</div>"+_ch+"</div></div>";
+    }catch(_err){el.innerHTML+="<div style='position:fixed;inset:0;background:var(--bg);z-index:300;padding:20px;'><div style='color:var(--dn);'>Log error: "+_err.message+"</div><button data-a='closeLog' style='color:var(--gd);background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:10px 20px;margin-top:16px;font-family:Georgia,serif;cursor:pointer;'>Close</button></div>";}
+  }
+  if(S.rosterModal){
+    try{
+      var _isA=S.rosterAdminMode;var _shifts=S.shifts||[];
+      var _html="";
+      if(S.shiftsLoading){_html="<div class='ldg'>Loading...</div>";}
+      else{
+        // ADMIN VIEW: Friday grid + special dates
+        if(_isA){
+          var _off=S.rosterOffset||0;
+          var _fridays=window._rf.getUpcomingFridays(8,_off);
+          var _fStart=_fridays[0];var _fEnd=_fridays[7];
+          var _mons=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+          var _rangeLabel=_mons[_fStart.getMonth()]+" "+_fStart.getFullYear()+(_fStart.getMonth()!==_fEnd.getMonth()?" – "+_mons[_fEnd.getMonth()]+" "+_fEnd.getFullYear():"");
+          _html+="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'>";
+          _html+="<button onclick='window._rf.prevWeeks()' style='background:var(--sf);color:"+(_off>0?"var(--gd)":"var(--mt)")+";border:1px solid var(--bd);border-radius:8px;padding:6px 12px;font-size:14px;font-family:Georgia,serif;cursor:pointer;'>← Prev</button>";
+          _html+="<span style='color:var(--mt);font-size:12px;'>"+_rangeLabel+"</span>";
+          _html+="<button onclick='window._rf.nextWeeks()' style='background:var(--sf);color:var(--gd);border:1px solid var(--bd);border-radius:8px;padding:6px 12px;font-size:14px;font-family:Georgia,serif;cursor:pointer;'>Next →</button>";
+          _html+="</div>";
+          _html+="<div style='display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;'>";
+          _fridays.forEach(function(fd){
+            var ds=window._rf.dateToStr(fd);
+            var dn=window._rf.dayName(fd);
+            var hasShift=_shifts.find(function(s){return s.date===ds;});
+            var day=fd.getDate();
+            var mon=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][fd.getMonth()];
+            _html+="<button onclick=\"window._rf.addFriday('"+ds+"','"+dn+"')\" style=\"background:"+(hasShift?"var(--gd)":"var(--sf)")+";color:"+(hasShift?"var(--bg)":"var(--tx)")+";border:1px solid "+(hasShift?"var(--gd)":"var(--bd)")+";border-radius:10px;padding:10px 4px;font-family:Georgia,serif;cursor:pointer;text-align:center;\"><div style=\"font-size:18px;font-weight:bold;\">"+day+"</div><div style=\"font-size:11px;\">"+mon+"</div><div style=\"font-size:14px;margin-top:3px;\">"+(hasShift?"✅ "+(hasShift.volunteers&&hasShift.volunteers.length?hasShift.volunteers.length+"👤":"0👤"):"＋")+"</div></button>";
+          });
+          _html+="</div>";
+          _html+="<button onclick=\"window._rf.addSpecial()\" style=\"width:100%;background:var(--sf);color:var(--gn);border:1px dashed var(--gn);border-radius:10px;padding:12px;font-size:14px;font-family:Georgia,serif;cursor:pointer;margin-bottom:16px;\">＋ Add Special Date (Saturday/Event)</button>";
+          if(!_shifts.length){_html+="<div style='color:var(--mt);font-size:13px;text-align:center;padding:8px;'>Tap any Friday above to schedule it</div>";}
+          // Admin shift detail list
+          if(_shifts.length){
+            _html+="<div style='color:var(--gd);font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;'>Scheduled Shifts</div>";
+            _shifts.forEach(function(sh){
+              var _vols=sh.volunteers||[];
+              var mon=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][parseInt(sh.date.split("/")[1])-1];
+              var dayNum=sh.date.split("/")[2];
+              _html+="<div style=\"background:var(--bg);border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid var(--bd);\">";
+              _html+="<div style=\"display:flex;justify-content:space-between;align-items:flex-start;\">";
+              _html+="<div><div style=\"color:var(--gd);font-size:16px;font-weight:bold;\">"+sh.dayName+" "+dayNum+" "+mon+"</div>";
+              _html+="<div style=\"color:var(--mt);font-size:13px;margin-top:2px;\">"+sh.startTime+" – "+sh.endTime+(sh.label?" &bull; "+sh.label:"")+"</div>";
+              _html+="<div style=\"color:var(--gn);font-size:12px;margin-top:4px;\">"+_vols.length+"/"+(sh.slotsNeeded||4)+" signed up</div></div>";
+              _html+="<button onclick=\"window._rf.del('"+sh.id+"')\" style=\"background:var(--db);color:var(--dn);border:1px solid var(--dd);border-radius:8px;padding:6px 10px;font-size:13px;font-family:Georgia,serif;cursor:pointer;\">🗑️ Delete</button></div>";
+              if(_vols.length){
+                _html+="<div style=\"margin-top:10px;border-top:1px solid var(--bd);padding-top:10px;\"><div style=\"color:var(--mt);font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;\">Volunteers</div>";
+                _vols.forEach(function(vn){
+                  _html+="<div style=\"display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bd);\"><span style=\"color:var(--tx);font-size:14px;\">👤 "+vn+"</span><button onclick=\"window._rf.removeVol('"+sh.id+"','"+vn+"')\" style=\"background:transparent;color:var(--dn);border:1px solid var(--dd);border-radius:6px;padding:3px 8px;font-size:12px;font-family:Georgia,serif;cursor:pointer;\">✕ Remove</button></div>";
+                });
+                _html+="</div>";
+              } else {
+                _html+="<div style=\"color:var(--mt);font-size:13px;margin-top:8px;font-style:italic;\">No volunteers yet</div>";
+              }
+              _html+="</div>";
+            });
+          }
+        }
+        // VOLUNTEER VIEW: show all upcoming Fridays + any special shifts
+        if(!_isA){
+          var _fridays=window._rf.getUpcomingFridays(8);
+          // Add any special (non-Friday) shifts not already in list
+          var _specialShifts=_shifts.filter(function(s){var d=new Date(s.date.replace(/\//g,"-"));return d.getDay()!==5;});
+          // Build combined list: all Fridays (with or without shift) + special shifts
+          var _combined=[];
+          _fridays.forEach(function(fd){
+            var ds=window._rf.dateToStr(fd);
+            var existing=_shifts.find(function(s){return s.date===ds;});
+            if(existing){_combined.push(existing);}
+            else{_combined.push({date:ds,dayName:"Friday",startTime:"16:30",endTime:"22:00",label:"",slotsNeeded:4,volunteers:[],_autoCreate:true});}
+          });
+          _specialShifts.forEach(function(s){_combined.push(s);});
+          _combined.sort(function(a,b){return a.date.localeCompare(b.date);});
+          _html+="<div style='color:var(--gd);font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;'>Upcoming Shifts</div>";
+          _combined.forEach(function(sh){
+            var _vols=sh.volunteers||[];var _isMine=S.vol&&_vols.indexOf(S.vol)>=0;
+            var _slots=sh.slotsNeeded||4;var _full=_vols.length>=_slots;
+            var mon=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][parseInt(sh.date.split("/")[1])-1];
+            var dayNum=sh.date.split("/")[2];
+            _html+="<div style=\"background:var(--bg);border-radius:12px;padding:14px;margin-bottom:10px;border:2px solid "+(_isMine?"var(--gd)":"var(--bd)")+";\"><div style=\"display:flex;justify-content:space-between;align-items:flex-start;\">";
+            _html+="<div><div style=\"color:var(--gd);font-size:17px;font-weight:bold;\">"+sh.dayName+" "+dayNum+" "+mon+"</div>";
+            _html+="<div style=\"color:var(--mt);font-size:13px;margin-top:2px;\">"+sh.startTime+" – "+sh.endTime+(sh.label?" &bull; <span style=\"color:var(--tx)\">"+sh.label+"</span>":"")+"</div>";
+            _html+="<div style=\"font-size:12px;margin-top:6px;\"><span style=\"color:"+(_full?"var(--dn)":"var(--gn)")+";\">"+_vols.length+"/"+_slots+" signed up</span>";
+            if(_vols.length)_html+=" &bull; <span style=\"color:var(--mt)\">"+_vols.join(", ")+"</span>";
+            _html+="</div></div>";
+            if(_isA)_html+="<button onclick=\"window._rf.del('"+sh.id+"')\" style=\"background:var(--db);color:var(--dn);border:1px solid var(--dd);border-radius:8px;padding:6px 10px;font-size:13px;font-family:Georgia,serif;cursor:pointer;\">🗑️</button>";
+            _html+="</div><div style=\"margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;\">";
+            if(S.vol&&!_isA){
+              if(_isMine){
+                _html+="<span style=\"background:var(--hv);color:var(--gd);border:1px solid var(--gd);border-radius:8px;padding:9px 14px;font-size:14px;font-family:Georgia,serif;display:inline-block;\">✅ I\'m on this</span>";
+                _html+="<button onclick=\"window._rf.ics('"+sh.date+"','"+sh.startTime+"','"+sh.endTime+"','"+encodeURIComponent(sh.label||"MSC Bar Shift")+"')\" style=\"background:var(--sf);color:var(--gn);border:1px solid var(--bd);border-radius:8px;padding:9px 14px;font-size:14px;font-family:Georgia,serif;cursor:pointer;\">📅 Add to Calendar</button>";
+              } else if(sh._autoCreate){
+                _html+="<button onclick=\"window._rf.joinAuto('"+sh.date+"','"+sh.dayName+"')\" style=\"background:var(--gd);color:var(--bg);border:none;border-radius:8px;padding:9px 14px;font-size:14px;font-weight:bold;font-family:Georgia,serif;cursor:pointer;\">I\'m available</button>";
+              } else if(!_full){
+                _html+="<button onclick=\"window._rf.join('"+sh.id+"','"+sh.date+"','"+sh.dayName+"','"+sh.startTime+"','"+sh.endTime+"')\" style=\"background:var(--gd);color:var(--bg);border:none;border-radius:8px;padding:9px 14px;font-size:14px;font-weight:bold;font-family:Georgia,serif;cursor:pointer;\">I\'m available</button>";
+              } else {
+                _html+="<span style=\"color:var(--dn);font-size:13px;padding:9px 0;\">Shift full</span>";
+              }
+            }
+            _html+="</div></div>";
+          });
+        }
+      }
+      el.innerHTML+="<div style=\"position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;flex-direction:column;overflow:hidden;\"><div style=\"background:var(--s2);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bd);flex-shrink:0;\"><span style=\"color:var(--gd);font-weight:bold;font-size:18px;\">📅 Roster</span><button onclick=\"window._rf.close()\" class=\"ib\">✕ Close</button></div><div style=\"flex:1;overflow-y:auto;padding:16px;\">"+_html+"</div></div>";
+    }catch(_e){console.error(_e);el.innerHTML+="<div style=\"position:fixed;inset:0;background:var(--bg);z-index:300;padding:20px;\"><div style=\"color:var(--dn);\">Roster error: "+_e.message+"</div><button onclick=\"window._rf.close()\" style=\"color:var(--gd);background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:10px 20px;margin-top:16px;font-family:Georgia,serif;cursor:pointer;\">Close</button></div>";}
+  }
+    if(S.inactivityModal)el.innerHTML+=`<div class="fov"><div class="fc"><div style="font-size:40px">⏰</div><div style="color:var(--gd);font-size:20px;font-weight:bold;margin-top:10px">Still there?</div><div style="color:var(--mt);font-size:13px;margin:10px 0 20px">30 minutes of inactivity</div><button class="done" style="width:100%;margin-bottom:10px" data-a="stillHere">I am still here</button><button class="cancel-btn" style="width:100%" data-a="goEndShift">Cash Out and Sign Out</button></div></div>`;
+  hook();
+}
+function rLoading(){return'<div class="ldg" style="padding-top:40vh">Loading...</div>';}
+function rLogin(){
+  const dots=Array(4).fill(0).map((_,i)=>`<div class="pin-dot ${i<S.pinInput.length?"on":""}"></div>`).join("");
+  const nk=["1","2","3","4","5","6","7","8","9","DEL","0","OK"].map(k=>`<button class="nk" data-a="lpnk" data-v="${k}">${k==="DEL"?"⌫":k}</button>`).join("");
+  return`<div class="lwrap"><div style="text-align:center;margin-bottom:28px"><div style="font-size:50px"><svg width="56" height="64" viewBox="0 0 70 80" xmlns="http://www.w3.org/2000/svg"><path d="M35 65 Q5 50 8 18 Q16 46 35 56 Z" fill="#236b40"/><path d="M35 65 Q65 50 62 18 Q54 46 35 56 Z" fill="#236b40"/><path d="M35 62 Q14 46 16 26 Q22 48 35 54 Z" fill="#2e8a52"/><path d="M35 62 Q56 46 54 26 Q48 48 35 54 Z" fill="#2e8a52"/><path d="M35 58 Q20 42 22 28 Q27 46 35 52 Z" fill="#3daa68"/><path d="M35 58 Q50 42 48 28 Q43 46 35 52 Z" fill="#3daa68"/><path d="M35 54 Q30 35 35 8 Q40 35 35 54 Z" fill="#52c47c"/><line x1="35" y1="8" x2="35" y2="0" stroke="#E8801A" stroke-width="2.5" stroke-linecap="round"/><circle cx="35" cy="0" r="2.5" fill="#E8801A"/></svg></div><div class="club-name">MORNINGSIDE</div><div class="club-sub">SPORTS CLUB</div><div class="club-tag">Our Community. Our Club</div><div class="club-bar">BAR</div></div><div class="pin-box"><div class="pin-prompt">Enter your PIN</div><div class="pin-dots">${dots}</div>${S.loginErr?'<div class="pin-err">PIN not recognised</div>':""}<div class="numpad">${nk}</div><button class="reg-link" data-a="goReg">New volunteer? Register here</button><button class="admin-link" data-a="goAdminPin">⚙️ Admin</button></div></div>`;
+}
+function rRegister(){
+  if(S.regStep===1){
+    return`<div class="pin-wrap"><div style="font-size:36px;margin-bottom:10px">👋</div><div class="reg-title">New Volunteer</div><div class="reg-sub">Enter your name exactly as your admin added it</div><input class="finp" id="regNI" placeholder="Your full name..." autocomplete="off" style="max-width:280px;margin:0 auto 12px;display:block;text-align:center">${S.regErr?`<div class="pin-err">${esc(S.regErr)}</div>`:""}<button class="save-btn" style="max-width:280px" data-a="regCheck">Continue</button><button class="cancel-btn" style="max-width:280px" data-a="goLogin">Cancel</button></div>`;
+  }
+  const isP2=S.regStep===2;const pv=isP2?S.regPin1:S.regPin2;
+  const dots=Array(4).fill(0).map((_,i)=>`<div class="pin-dot ${i<pv.length?"on":""}"></div>`).join("");
+  const nk=["1","2","3","4","5","6","7","8","9","DEL","0","OK"].map(k=>`<button class="nk" data-a="${isP2?"rp1":"rp2"}" data-v="${k}">${k==="DEL"?"⌫":k}</button>`).join("");
+  return`<div class="pin-wrap"><div style="font-size:36px;margin-bottom:10px">🔐</div><div class="reg-title">${isP2?`Hi ${esc(S.regName)}!`:"Confirm PIN"}</div><div class="reg-sub">${isP2?"Choose a 4-digit PIN":"Enter your PIN again to confirm"}</div><div class="pin-dots">${dots}</div>${S.regErr?`<div class="pin-err">${esc(S.regErr)}</div>`:""}<div class="numpad">${nk}</div>${isP2?`<button class="cancel-btn" style="max-width:320px;margin-top:14px" data-a="goLogin">Cancel</button>`:""}</div>`;
+}
+function rMenu(){
+  return`<div class="scr" style="justify-content:center;align-items:center;">
+    <div style="width:100%;padding:28px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:24px;">
+      <div style="text-align:center;">
+        <div style="margin-bottom:12px;"><svg width="52" height="60" viewBox="0 0 70 80" xmlns="http://www.w3.org/2000/svg"><path d="M35 65 Q5 50 8 18 Q16 46 35 56 Z" fill="#236b40"/><path d="M35 65 Q65 50 62 18 Q54 46 35 56 Z" fill="#236b40"/><path d="M35 62 Q14 46 16 26 Q22 48 35 54 Z" fill="#2e8a52"/><path d="M35 62 Q56 46 54 26 Q48 48 35 54 Z" fill="#2e8a52"/><path d="M35 58 Q20 42 22 28 Q27 46 35 52 Z" fill="#3daa68"/><path d="M35 58 Q50 42 48 28 Q43 46 35 52 Z" fill="#3daa68"/><path d="M35 54 Q30 35 35 8 Q40 35 35 54 Z" fill="#52c47c"/><line x1="35" y1="8" x2="35" y2="0" stroke="#E8801A" stroke-width="2.5" stroke-linecap="round"/><circle cx="35" cy="0" r="2.5" fill="#E8801A"/></svg></div>
+        <div style="color:var(--gn);font-size:22px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;">Morningside</div>
+        <div style="color:var(--gd);font-size:15px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;">Sports Club Bar</div>
+      </div>
+      <div style="text-align:center;background:var(--sf);border:1px solid var(--bd);border-radius:20px;padding:28px 32px;width:100%;max-width:380px;">
+        <div style="color:var(--mt);font-size:13px;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">Welcome back</div>
+        <div style="color:var(--gd);font-size:40px;font-weight:bold;margin-bottom:4px;">${esc(S.vol)}</div>
+        <div style="color:var(--mt);font-size:14px;">${tod()}</div>
+      </div>
+      <button class="done" style="width:100%;max-width:380px;font-size:22px;padding:22px;letter-spacing:2px;border-radius:16px;" data-a="goPos">START SERVING →</button>
+    </div>
+  </div>`;
+}
+function rPOS(){
+  const t=tot();
+
+  // Top bar (always visible)
+  const topBar=`<div style="background:var(--s2);padding:12px 14px;border-bottom:1px solid var(--bd);flex-shrink:0;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div><div style="color:var(--mt);font-size:12px;text-transform:uppercase;letter-spacing:1px;">Barman</div><div style="color:var(--gd);font-size:22px;font-weight:bold;">${esc(S.vol)}</div></div>
+      <div style="display:flex;gap:8px;">
+        <button class="ib" data-a="gr">📊</button><button class="ib" onclick="window._rf.open(false)">📅</button>
+        <button style="padding:9px 14px;font-size:15px;background:#2a1212;color:#e05555;border:1px solid #4a2222;border-radius:8px;font-family:Georgia,serif;cursor:pointer;" data-a="goEndShift">🔚 End</button>
+      </div>
+    </div>
+    <div style="display:flex;background:var(--bg);border-radius:20px;padding:4px;border:1px solid var(--bd);">
+      <button style="flex:1;background:${S.mem?"var(--gd)":"transparent"};color:${S.mem?"var(--bg)":"var(--mt)"};border:none;border-radius:16px;padding:13px;font-size:17px;font-family:Georgia,serif;font-weight:${S.mem?"bold":"normal"};cursor:pointer;" data-a="sm" data-v="1">👤 Member</button>
+      <button style="flex:1;background:${!S.mem?"var(--gd)":"transparent"};color:${!S.mem?"var(--bg)":"var(--mt)"};border:none;border-radius:16px;padding:13px;font-size:17px;font-family:Georgia,serif;font-weight:${!S.mem?"bold":"normal"};cursor:pointer;" data-a="sm" data-v="0">🚶 Non-Member</button>
+    </div>
+  </div>`;
+
+  // Bottom order panel
+  const fl=S.flash?`<div class="fov"><div class="fc"><div style="font-size:52px">✅</div><div style="color:var(--gd);font-size:32px;font-weight:bold;margin-top:10px">R${S.famt}</div><div style="color:var(--mt);margin-top:6px;font-size:15px">Sale saved!</div></div></div>`:"";
+  const bottomSection=S.order.length?`<div style="background:var(--s2);border-top:1px solid var(--bd);padding:10px 14px;flex-shrink:0;">
+    <div style="max-height:120px;overflow-y:auto;margin-bottom:8px;">${S.order.map(i=>`<div class="oi"><span class="on2" style="font-size:15px;">${esc(i.n)}</span><div class="qc"><button class="qb" style="width:30px;height:30px;font-size:18px;" data-a="qd" data-k="${i.k}">-</button><span class="qn" style="font-size:16px;">${i.qty}</span><button class="qb" style="width:30px;height:30px;font-size:18px;" data-a="qu" data-k="${i.k}">+</button><span class="it" style="font-size:15px;">R${i.price*i.qty}</span><button class="xb" data-a="rm" data-k="${i.k}">x</button></div></div>`).join("")}</div>
+    ${S.serr?'<div class="err">Could not save. Check connection.</div>':""}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <span style="color:var(--mt);font-size:14px;text-transform:uppercase;letter-spacing:1px;">Total</span>
+      <span style="color:var(--gd);font-weight:bold;font-size:30px;">R${t}</span>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <div style="display:flex;background:var(--bg);border-radius:20px;padding:4px;border:1px solid var(--bd);flex:1;">
+        <button style="flex:1;background:${S.pay==="Cash"?"var(--gd)":"transparent"};color:${S.pay==="Cash"?"var(--bg)":"var(--mt)"};border:none;border-radius:16px;padding:10px;font-size:15px;font-family:Georgia,serif;font-weight:${S.pay==="Cash"?"bold":"normal"};cursor:pointer;" data-a="sp" data-v="Cash">💵 Cash</button>
+        <button style="flex:1;background:${S.pay==="Zapper"?"var(--gd)":"transparent"};color:${S.pay==="Zapper"?"var(--bg)":"var(--mt)"};border:none;border-radius:16px;padding:10px;font-size:15px;font-family:Georgia,serif;font-weight:${S.pay==="Zapper"?"bold":"normal"};cursor:pointer;" data-a="sp" data-v="Zapper">📱 Zapper</button>
+      </div>
+      <button class="done" style="font-size:18px;padding:10px 22px;flex-shrink:0;" data-a="done">DONE</button>
+    </div>
+  </div>`:"";
+
+  // CATEGORY TILES (no category selected)
+  if(!S.poscat){
+    const grpMap={};S.products.forEach(p=>{if(!grpMap[p.cat])grpMap[p.cat]=[];grpMap[p.cat].push(p);});
+    const tiles=CATS.map(c=>{
+      const ps=grpMap[c.id]||[];if(!ps.length)return"";
+      let stockNote="";
+      if(c.id==="spirits"){
+        const sgrps=[...new Set(ps.map(p=>p.grp).filter(Boolean))];
+        if(sgrps.length){
+          const outG=sgrps.filter(g=>(S.spiritStock[g]||0)<=0).length;
+          const lowG=sgrps.filter(g=>(S.spiritStock[g]||0)>0&&(S.spiritStock[g]||0)<TOTS_PER_BOTTLE).length;
+          stockNote=outG>0?`<div style="color:var(--dn);font-size:13px;margin-top:4px">${outG} out of stock</div>`:lowG>0?`<div style="color:var(--gd);font-size:13px;margin-top:4px">${lowG} running low</div>`:"";
+        }
+      } else {
+        const inStock=ps.filter(p=>(p.stock||0)>0).length;
+        stockNote=ps.every(p=>p.stock===undefined||p.stock===null)?"":inStock===0?'<div style="color:var(--dn);font-size:13px;margin-top:4px">Out of stock</div>':inStock<ps.length?`<div style="color:var(--gd);font-size:13px;margin-top:4px">${inStock}/${ps.length} in stock</div>`:"";
+      }
+      return`<button style="background:var(--sf);border:1px solid var(--bd);border-radius:16px;padding:22px 16px;text-align:left;width:100%;display:flex;align-items:center;gap:16px;margin-bottom:12px;" data-a="setPoscat" data-cat="${c.id}">
+        <span style="font-size:40px;">${c.i}</span>
+        <div style="flex:1;">
+          <div style="color:var(--gd);font-size:22px;font-weight:bold;">${c.l}</div>
+          <div style="color:var(--mt);font-size:14px;margin-top:2px;">${ps.length} items${stockNote}</div>
+        </div>
+        <span style="color:var(--mt);font-size:24px;">›</span>
+      </button>`;
+    }).join("");
+    return`<div class="scr">${topBar}<div class="scroll" style="flex:1 1 0;min-height:0;">${tiles}</div>${bottomSection}</div>${fl}`;
+  }
+
+  // PRODUCT GRID (category selected)
+  const cp=S.products.filter(p=>p.cat===S.poscat).sort((a,b)=>(a.ord||0)-(b.ord||0));
+  let prods="";
+  if(S.poscat==="wine"){["Red","White","Rose","Champagne"].forEach(g=>{const ws=cp.filter(p=>p.s===g);if(ws.length)prods+=`<div class="wg">${g}</div><div class="pgrid" style="margin-bottom:16px">${ws.map(pBtn).join("")}</div>`;});}
+  else prods=`<div class="pgrid">${cp.map(pBtn).join("")}</div>`;
+
+  const cat=CATS.find(c=>c.id===S.poscat);
+  const catHeader=`<div style="background:var(--s2);padding:10px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px;flex-shrink:0;">
+    <button class="ib" data-a="clearPoscat">← Back</button>
+    <span style="color:var(--gd);font-size:20px;font-weight:bold;">${cat?cat.i+" "+cat.l:""}</span>
+  </div>`;
+
+  return`<div class="scr">${topBar}${catHeader}<div class="scroll" style="flex:1 1 0;min-height:0;">${prods}</div>${bottomSection}</div>${fl}`;
+}
+
+const pBtn=it=>{let stk;if(it.grp){const totsLeft=S.spiritStock[it.grp]||0;stk=Math.floor(totsLeft/(it.tot||1));}else{stk=it.stock;}const isOut=stk!==undefined&&stk!==null&&stk<=0;const stkStr=stk===undefined||stk===null?"":isOut?'<div style="color:var(--dn);font-size:11px;margin-top:2px">OUT OF STOCK</div>':stk<=5?`<div style="color:var(--gd);font-size:11px;margin-top:2px">Stock: ${stk}</div>`:"";return`<button class="pb" data-a="ap" data-id="${it.id}" style="${isOut?"opacity:0.4;pointer-events:none;cursor:not-allowed;":""}"><div class="pn">${esc(it.n)}</div>${it.s?`<div class="ps">${it.s}</div>`:""}<div class="pp">R${gp(it)}</div>${it.x?`<div class="px">${it.x}</div>`:""}${stkStr}</button>`;};
+function rChange(){
+  const sale=S.changeSale,paid=S.changePaid?Number(S.changePaid):null,change=paid!==null?paid-sale:null;
+  const nk=["7","8","9","4","5","6","1","2","3","C","0","DEL"].map(k=>`<button class="nk" data-a="nk" data-v="${k}">${k==="DEL"?"⌫":k}</button>`).join("");
+  return`<div class="scr"><div class="tbar"><span style="color:var(--gd);font-weight:bold;font-size:16px">💵 Change Calculator</span><button class="ib" data-a="skipChange">Skip</button></div><div class="scroll"><div style="text-align:center;padding:24px 16px 20px"><div style="color:var(--mt);font-size:14px;margin-bottom:20px">Sale: <strong style="color:var(--gd)">R${sale}</strong></div><div style="margin-bottom:20px"><div class="chg-lbl">Customer Paid</div><div class="chg-val gold">R${S.changePaid||"0"}</div></div><div><div class="chg-lbl">Change to Give</div><div class="chg-val ${change===null?"gold":change>=0?"pos":"neg"}">${change===null?"---":change>=0?"R"+change:"SHORT R"+Math.abs(change)}</div></div></div><div class="numpad">${nk}</div><button class="done" style="width:100%;max-width:320px;display:block;margin:20px auto 0" data-a="doneChange">Done</button></div></div>`;
+}
+function rCashout(){
+  const exp=S.coExpected,variance=S.coSaved?S.coActual-exp:null;
+  const vc=variance===null?"":variance>=0?"over":"short";
+  const vt=variance===null?"Enter cash above":variance===0?"Exact!":variance>0?"R"+variance+" OVER":"R"+Math.abs(variance)+" SHORT";
+  return`<div class="scr"><div class="tbar"><span style="color:var(--gd);font-weight:bold;font-size:16px">💰 Cashout</span><button class="ib" data-a="goPos">Back</button></div><div class="scroll"><div class="co-card"><div class="rct">Session: ${esc(S.vol)} — ${tod()}</div><div class="co-row"><span class="co-lbl">Expected cash</span><span class="co-val" style="color:var(--gd)">R${exp}</span></div></div><div class="co-card"><div class="rct">Count till and enter total</div><input class="co-inp" id="coI" type="number" placeholder="R 0.00" value="${S.coActual||""}"><div class="co-row"><span class="co-lbl">Variance</span><span class="co-val ${vc}">${vt}</span></div></div>${S.coSaved?'<div class="ok-msg">Cashout recorded!</div>':""}<button class="done" style="width:100%;margin-bottom:12px" data-a="saveCO">Save Cashout</button><button class="endb" data-a="doLogout">🔴 End Session</button></div></div>`;
+}
+function rEndShift(){
+  if(S.esLoading)return`<div class="scr"><div class="tbar"><span style="color:var(--gd);font-weight:bold">🔚 End Shift</span></div><div class="ldg">Loading your session...</div></div>`;
+  const sl=S.esSales,valid=sl.filter(x=>!x.voided),t=valid.reduce((a,x)=>a+x.total,0),cash=valid.filter(x=>x.pay==="Cash").reduce((a,x)=>a+x.total,0),zap=valid.filter(x=>x.pay==="Zapper").reduce((a,x)=>a+x.total,0);
+  const variance=S.esSaved?S.esActual-cash:null;
+  const vc=variance===null?"":variance>=0?"over":"short";
+  const vt=variance===null?"Enter cash above":variance===0?"Exact!":variance>0?"R"+variance+" OVER":"R"+Math.abs(variance)+" SHORT";
+  return`<div class="scr"><div class="tbar"><span style="color:var(--gd);font-weight:bold;font-size:15px">🔚 End Shift — ${esc(S.vol)}</span></div><div class="scroll"><div class="co-card"><div class="rct">Your Session — ${tod()}</div><div class="co-row"><span class="co-lbl">Total Sales</span><span class="co-val" style="color:var(--gd)">R${t}</span></div><div class="co-row"><span class="co-lbl">💵 Cash</span><span class="co-val" style="color:var(--gn)">R${cash}</span></div><div class="co-row"><span class="co-lbl">📱 Zapper</span><span class="co-val" style="color:var(--gn)">R${zap}</span></div><div class="co-row"><span class="co-lbl">Sales count</span><span class="co-val">${sl.length}</span></div></div>${cash>0?`<div class="co-card"><div class="rct">💰 Cash Count</div><div style="color:var(--mt);font-size:13px;margin-bottom:12px">Expected: <strong style="color:var(--gd)">R${cash}</strong></div><input class="co-inp" id="esI" type="number" placeholder="Enter cash counted..." value="${S.esActual||""}"><div class="co-row"><span class="co-lbl">Variance</span><span class="co-val ${vc}">${vt}</span></div></div>`:""}<div style="margin-bottom:16px">${cash>0&&!S.esSaved?`<button class="done" style="width:100%;margin-bottom:10px" data-a="saveES">Save Cash Count</button>`:""}<button class="${S.esSaved||cash===0?"done":"cancel-btn"}" style="width:100%;${S.esSaved?"background:var(--gn);color:var(--bg)":""}" data-a="doLogout">${S.esSaved||cash===0?"✅ Log Out":"Skip and Log Out"}</button><button class="cancel-btn" style="margin-top:8px;width:100%" data-a="goPos">← Back to Bar</button></div></div></div>`;
+}
+function rReport(){
+  if(S.ldDates)return`<div class="scr">${rtop()}<div class="ldg">Loading...</div></div>`;
+  if(S.selDate)return rDateRpt();
+  const dl=S.allDates.length?S.allDates.map(({d,t})=>`<button class="date-item" data-a="selD" data-d="${d}"><span style="color:var(--tx);font-size:16px">${d}</span><span style="color:var(--gd);font-weight:bold;font-size:18px">R${t}</span></button>`).join(""):`<div class="err">No sales recorded yet</div>`;
+  return`<div class="scr">${rtop()}<div class="scroll"><div class="sec-lbl">Select a date</div>${dl}</div></div>`;
+}
+function rDateRpt(){
+  if(S.lrpt)return`<div class="scr">${rtop()}<div class="ldg">Loading...</div></div>`;
+  const sl=S.sales;
+  const valid=sl.filter(x=>!x.voided);
+  const voided=sl.filter(x=>x.voided);
+  const t=valid.reduce((a,x)=>a+x.total,0);
+  const cash=valid.filter(x=>x.pay==="Cash").reduce((a,x)=>a+x.total,0);
+  const zap=valid.filter(x=>x.pay==="Zapper").reduce((a,x)=>a+x.total,0);
+  const bv={};valid.forEach(s=>{if(!bv[s.vol])bv[s.vol]={c:0,t:0};bv[s.vol].c++;bv[s.vol].t+=s.total;});
+  const bp={};valid.forEach(s=>s.items.forEach(i=>{if(!bp[i.n])bp[i.n]={q:0,r:0};bp[i.n].q+=i.qty;bp[i.n].r+=i.price*i.qty;}));
+  const vr=Object.keys(bv).length?Object.entries(bv).map(([v,d])=>`<div class="rr"><span class="rn">${esc(v)} <span style="color:var(--mt)">(${d.c})</span></span><span class="rv">R${d.t}</span></div>`).join(""):`<div style="color:var(--mt);font-size:13px">No sales</div>`;
+  const pr=Object.keys(bp).length?Object.entries(bp).sort((a,b)=>b[1].r-a[1].r).map(([n,d])=>`<div class="rr"><span class="rn">${esc(n)} <span style="color:var(--mt)">x${d.q}</span></span><span class="rv">R${d.r}</span></div>`).join(""):`<div style="color:var(--mt);font-size:13px">No sales</div>`;
+  const isT=S.selDate===tod();
+  const isAdmin=S.reportMode==="admin";
+
+  const saleCards=sl.slice().sort((a,b)=>(a.time||"").localeCompare(b.time||"")).map(s=>{
+    const isV=!!s.voided;
+    const isSel=S.selectedSales.includes(s.id);
+    const canVoid=!isV&&!S.selectMode&&(isAdmin||(s.vol===S.vol&&isT));
+    const canUnvoid=isV&&isAdmin&&!S.selectMode;
+    const canDelete=isAdmin&&!S.selectMode;
+    return`<div data-saleid="${s.id}" style="background:${isSel?"var(--hv)":"var(--bg)"};border-radius:10px;padding:10px 12px;margin-bottom:8px;border:2px solid ${isSel?"var(--gd)":isV?"var(--dd)":"var(--bd)"};user-select:none;" data-a="${S.selectMode?"toggleSale":""}">
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        ${S.selectMode?`<div style="font-size:22px;flex-shrink:0;margin-top:2px;">${isSel?"✅":"⭕"}</div>`:""}
+        <div style="flex:1;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+            <div>
+              <span style="color:${isV?"var(--mt)":"var(--tx)"};font-size:14px;font-weight:bold;${isV?"text-decoration:line-through":""}">${esc(s.vol)}</span>
+              <span style="color:var(--mt);font-size:12px;margin-left:6px">${s.time||""}</span>
+              ${isV?`<div style="color:var(--dn);font-size:11px;margin-top:2px">🚫 Voided by ${esc(s.voidedBy||"admin")}</div>`:""}
+            </div>
+            <div style="text-align:right">
+              <div style="color:${isV?"var(--mt)":"var(--gd)"};font-weight:bold;font-size:16px;${isV?"text-decoration:line-through":""}">R${s.total} ${s.pay==="Cash"?"💵":"📱"}</div>
+              ${canVoid?`<button style="background:var(--db);color:var(--dn);border:1px solid var(--dd);border-radius:6px;padding:4px 10px;font-size:12px;font-family:Georgia,serif;cursor:pointer;margin-top:4px;" data-a="doVoid" data-id="${s.id}">Void</button>`:""}
+              ${canUnvoid?`<button style="background:var(--hv);color:var(--gn);border:1px solid var(--bd);border-radius:6px;padding:4px 10px;font-size:12px;font-family:Georgia,serif;cursor:pointer;margin-top:4px;" data-a="doUnvoid" data-id="${s.id}">Un-void</button>`:""}
+              ${canDelete?`<button style="background:var(--db);color:var(--dn);border:1px solid var(--dd);border-radius:6px;padding:4px 10px;font-size:12px;font-family:Georgia,serif;cursor:pointer;margin-top:4px;" data-a="doDelOne" data-id="${s.id}">Delete</button>`:""}
+            </div>
+          </div>
+          <div>${s.items.map(i=>`<span style="color:var(--mt);font-size:12px">${esc(i.n)} x${i.qty}</span>`).join(", ")}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  const selectBar=S.selectMode?`<div style="position:sticky;bottom:0;background:var(--s2);padding:12px 14px;border-top:1px solid var(--bd);display:flex;flex-direction:column;gap:8px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span style="color:var(--mt);font-size:14px">${S.selectedSales.length} selected</span>
+      <button style="background:transparent;color:var(--gn);border:none;font-size:14px;font-family:Georgia,serif;cursor:pointer;" data-a="selAll">Select all (${sl.length})</button>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button style="flex:1;background:var(--sf);color:var(--mt);border:1px solid var(--bd);border-radius:10px;padding:12px;font-size:15px;font-family:Georgia,serif;cursor:pointer;" data-a="cancelSelect">Cancel</button>
+      <button style="flex:1;background:var(--db);color:var(--dn);border:1px solid var(--dd);border-radius:10px;padding:12px;font-size:15px;font-family:Georgia,serif;cursor:pointer;${S.selectedSales.length===0?"opacity:0.5":""}" data-a="delSelected">🗑️ Delete (${S.selectedSales.length})</button>
+    </div>
+  </div>`:"";
+
+  
+
+  return`<div class="scr">${rtop()}<div class="scroll"><button class="back-btn" data-a="${S.selectMode?"cancelSelect":"clrD"}">${S.selectMode?"✕ Cancel":"← All dates"}</button><div class="rc"><div class="rct">💰 ${S.selDate}${voided.length?` <span style="color:var(--dn);font-size:11px">(${voided.length} voided)</span>`:""}</div><div class="sgrid"><div class="sb"><div class="sv" style="color:var(--gd)">R${t}</div><div class="sl">Total</div></div><div class="sb"><div class="sv" style="color:var(--gn)">R${cash}</div><div class="sl">Cash</div></div><div class="sb"><div class="sv" style="color:var(--gn)">R${zap}</div><div class="sl">Zapper</div></div></div></div><div class="rc"><div class="rct">👤 By Volunteer</div>${vr}</div><div class="rc"><div class="rct">🛒 By Product</div>${pr}</div><div class="rc"><div style="display:flex;justify-content:space-between;align-items:center;" class="rct">📋 Individual Sales${isAdmin&&!S.selectMode&&sl.length?`<button style="background:var(--hv);color:var(--gd);border:1px solid var(--bd);border-radius:8px;padding:5px 14px;font-size:13px;font-family:Georgia,serif;cursor:pointer;" data-a="enterSelect">Select</button>`:""}</div>${saleCards||'<div style="color:var(--mt);font-size:13px">No sales</div>'}</div>${!S.selectMode&&isT?'<button class="co-btn" data-a="goCO">💰 Cashout</button>':""}</div></div>${selectBar}`;
+}
+
+const rtop=()=>`<div class="tbar"><span style="color:var(--gd);font-size:18px;font-weight:bold;text-transform:uppercase;letter-spacing:2px">Reports</span><div style="display:flex;gap:8px"><button class="ib" data-a="ref">🔄</button><button class="ib" data-a="${S.reportMode==="admin"?"goAdmin":"goPos"}">Back</button></div></div>`;
+function rAdminPin(){
+  const dots=Array(4).fill(0).map((_,i)=>`<div class="pin-dot ${i<S.adminPinInput.length?"on":""}"></div>`).join("");
+  const nk=["1","2","3","4","5","6","7","8","9","DEL","0","OK"].map(k=>`<button class="nk" data-a="apnk" data-v="${k}">${k==="DEL"?"⌫":k}</button>`).join("");
+  return`<div class="pin-wrap"><div style="font-size:40px;margin-bottom:10px">🔐</div><div style="color:var(--gd);font-size:20px;font-weight:bold;letter-spacing:2px">ADMIN ACCESS</div><div class="pin-dots">${dots}</div>${S.adminPinErr?'<div class="pin-err">Incorrect PIN</div>':""}<div class="numpad">${nk}</div><button class="cancel-btn" style="max-width:320px;margin-top:16px" data-a="goLogin">Cancel</button></div>`;
+}
+function rAdmin(){
+  const modal=(S.editProd!==null||S.newProdMode)?rEditModal():"";
+  return`<div class="scr"><div class="tbar"><span style="color:var(--gd);font-weight:bold;font-size:16px">⚙️ Admin Panel</span><div style="display:flex;gap:8px;"><button class="ib" data-a="adminReports">📊</button><button class="ib" onclick="S.logModal=true;render()">📋 Log</button><button class="ib" onclick="window._rf.open(true)">📅 Roster</button><button class="ib" data-a="goLogin">Exit</button></div></div><div class="atabs"><button class="atab ${S.aSection==="products"?"on":""}" data-a="aTab" data-v="products">Products</button><button class="atab ${S.aSection==="volunteers"?"on":""}" data-a="aTab" data-v="volunteers">Volunteers</button><button class="atab ${S.aSection==="admins"?"on":""}" data-a="aTab" data-v="admins">Admins</button></div><div class="scroll">${S.aSection==="products"?rAProds():S.aSection==="volunteers"?rAVols():rAAdmins()}</div></div>${modal}`;
+}
+function rAProds(){
+  const cgrp={};S.products.forEach(p=>{if(!cgrp[p.cat])cgrp[p.cat]=[];cgrp[p.cat].push(p);});
+
+  // CATEGORY OVERVIEW (no category selected)
+  if(!S.adminProdCat){
+    const tiles=CATS.map(c=>{
+      const ps=cgrp[c.id]||[];if(!ps.length)return"";
+      let note="";
+      if(c.id==="spirits"){
+        const sgrps=[...new Set(ps.map(p=>p.grp).filter(Boolean))];
+        const outCount=sgrps.filter(g=>(S.spiritStock[g]||0)<=0).length;
+        const lowCount=sgrps.filter(g=>(S.spiritStock[g]||0)>0&&(S.spiritStock[g]||0)<TOTS_PER_BOTTLE).length;
+        if(outCount>0)note=`<div style="color:var(--dn);font-size:13px;margin-top:4px">${outCount} out of stock</div>`;
+        else if(lowCount>0)note=`<div style="color:var(--gd);font-size:13px;margin-top:4px">${lowCount} running low</div>`;
+        else note=`<div style="color:var(--gn);font-size:13px;margin-top:4px">All in stock</div>`;
+      } else {
+        const outCount=ps.filter(p=>(p.stock||0)<=0).length;
+        const lowCount=ps.filter(p=>(p.stock||0)>0&&(p.stock||0)<=5).length;
+        if(outCount>0)note=`<div style="color:var(--dn);font-size:13px;margin-top:4px">${outCount} out of stock</div>`;
+        else if(lowCount>0)note=`<div style="color:var(--gd);font-size:13px;margin-top:4px">${lowCount} running low</div>`;
+        else note=`<div style="color:var(--gn);font-size:13px;margin-top:4px">All in stock</div>`;
+      }
+      return`<button style="background:var(--sf);border:1px solid var(--bd);border-radius:16px;padding:22px 16px;text-align:left;width:100%;display:flex;align-items:center;gap:16px;margin-bottom:12px;" data-a="setAdminProdCat" data-cat="${c.id}">
+        <span style="font-size:40px;">${c.i}</span>
+        <div style="flex:1;">
+          <div style="color:var(--gd);font-size:22px;font-weight:bold;">${c.l}</div>
+          <div style="color:var(--mt);font-size:14px;margin-top:2px;">${ps.length} items${note}</div>
+        </div>
+        <span style="color:var(--mt);font-size:24px;">›</span>
+      </button>`;
+    }).join("");
+    return tiles+`<button class="add-pbtn" data-a="newP">+ Add New Product</button><button style="width:100%;background:var(--db);color:var(--dn);border:1px solid var(--dd);border-radius:10px;padding:14px;font-size:13px;margin-bottom:8px" data-a="resetProds">🔄 Reset to Updated Price List</button>`;
+  }
+
+  const cat=CATS.find(c=>c.id===S.adminProdCat);
+  const header=`<button class="back-btn" data-a="clearAdminProdCat">← All Categories</button><div class="sec-lbl">${cat?cat.i+" "+cat.l:""}</div>`;
+
+  // SPIRITS — grouped by spirit, shared tot pool from bottles
+  if(S.adminProdCat==="wine"){const wgroups=["Red","White","Rose","Champagne"];const ungrouped=ps.filter(p=>!wgroups.includes(p.s));const wcards=wgroups.map(g=>{const ws=ps.filter(p=>p.s===g);if(!ws.length)return"";return`<div class="sec-lbl" style="margin-top:16px">${g==="Champagne"?"🍾":g==="Red"?"🍷":g==="White"?"🥂":"🌸"} ${g}</div>${ws.map(p=>{const stk=p.stock||0;const sc=stk<=0?"var(--dn)":stk<=5?"var(--gd)":"var(--gn)";const sl=stk<=0?"OUT":"x"+stk;return`<div class="pitem"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="flex:1"><div style="color:var(--tx);font-size:15px;font-weight:bold">${esc(p.n)}</div><div style="color:var(--mt);font-size:12px;margin:4px 0">M: R${p.m} | NM: R${p.p}${p.x?" | "+esc(p.x):""}</div></div><div style="text-align:center;min-width:52px"><div style="color:${sc};font-size:26px;font-weight:bold;line-height:1">${stk}</div><div style="color:${sc};font-size:10px;text-transform:uppercase;letter-spacing:1px">${sl}</div></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;"><div style="display:flex;align-items:center;gap:8px;"><button class="qb" style="width:34px;height:34px;font-size:20px;border:1px solid var(--bd);" data-a="stkDn" data-id="${p.id}">-</button><button style="background:var(--hv);color:var(--gd);border:1px solid var(--bd);border-radius:8px;padding:6px 12px;font-size:13px;font-family:Georgia,serif;cursor:pointer;" data-a="stkSet" data-id="${p.id}" data-name="${esc(p.n)}">Set</button><button class="qb" style="width:34px;height:34px;font-size:20px;border:1px solid var(--bd);" data-a="stkUp" data-id="${p.id}">+</button></div><div class="pbtns"><button class="ebtn" data-a="editP" data-id="${p.id}">Edit</button><button class="dbtn" data-a="delP" data-id="${p.id}">Delete</button></div></div></div>`;}).join("")}`;}).join("");const ungroupedCards=ungrouped.map(p=>{const stk=p.stock||0;const sc=stk<=0?"var(--dn)":stk<=5?"var(--gd)":"var(--gn)";const sl=stk<=0?"OUT":"x"+stk;return`<div class="pitem"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="flex:1"><div style="color:var(--tx);font-size:15px;font-weight:bold">${esc(p.n)}</div><div style="color:var(--mt);font-size:12px;margin:4px 0">M: R${p.m} | NM: R${p.p}${p.x?" | "+esc(p.x):""}</div></div><div style="text-align:center;min-width:52px"><div style="color:${sc};font-size:26px;font-weight:bold;line-height:1">${stk}</div><div style="color:${sc};font-size:10px;text-transform:uppercase;letter-spacing:1px">${sl}</div></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;"><div style="display:flex;align-items:center;gap:8px;"><button class="qb" style="width:34px;height:34px;font-size:20px;border:1px solid var(--bd);" data-a="stkDn" data-id="${p.id}">-</button><button style="background:var(--hv);color:var(--gd);border:1px solid var(--bd);border-radius:8px;padding:6px 12px;font-size:13px;font-family:Georgia,serif;cursor:pointer;" data-a="stkSet" data-id="${p.id}" data-name="${esc(p.n)}">Set</button><button class="qb" style="width:34px;height:34px;font-size:20px;border:1px solid var(--bd);" data-a="stkUp" data-id="${p.id}">+</button></div><div class="pbtns"><button class="ebtn" data-a="editP" data-id="${p.id}">Edit</button><button class="dbtn" data-a="delP" data-id="${p.id}">Delete</button></div></div></div>`;}).join("");return header+wcards+ungroupedCards+`<button class="add-pbtn" data-a="newP">+ Add New Product</button>`;}
+  if(S.adminProdCat==="spirits"){
+    const ps=(cgrp.spirits||[]).sort((a,b)=>(a.ord||0)-(b.ord||0));
+    const byGrp={};
+    ps.forEach(p=>{const g=p.grp||"other";if(!byGrp[g])byGrp[g]=[];byGrp[g].push(p);});Object.values(byGrp).forEach(arr=>arr.sort((a,b)=>a.n.localeCompare(b.n)));
+    const cards=Object.entries(byGrp).map(([g,items])=>{
+      const tots=S.spiritStock[g]||0;
+      const sc=tots<=0?"var(--dn)":tots<TOTS_PER_BOTTLE?"var(--gd)":"var(--gn)";
+      const sl=tots<=0?"OUT":tots+" tots";
+      const name=items[0]?items[0].n:g;
+      const singleItem=items.find(i=>(i.tot||1)===1);
+      const doubleItem=items.find(i=>(i.tot||1)===2);
+      const equivParts=[];
+      if(singleItem)equivParts.push(Math.floor(tots/1)+" singles");
+      if(doubleItem)equivParts.push(Math.floor(tots/2)+" doubles");
+      const equiv=equivParts.join(" or ");
+      const skuRows=items.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd);"><span style="color:var(--tx);font-size:14px;">${esc(p.s||"")} <span style="color:var(--mt);font-size:12px;">M:R${p.m} | NM:R${p.p}</span></span><div style="display:flex;gap:8px;"><button class="ebtn" data-a="editP" data-id="${p.id}">Edit</button><button class="dbtn" data-a="delP" data-id="${p.id}">Delete</button></div></div>`).join("");
+      return`<div class="pitem">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div style="flex:1"><div style="color:var(--tx);font-size:17px;font-weight:bold">${esc(name)}</div><div style="color:var(--mt);font-size:12px;margin-top:2px;">${equiv}</div></div>
+          <div style="text-align:center;min-width:64px"><div style="color:${sc};font-size:24px;font-weight:bold;line-height:1">${tots}</div><div style="color:${sc};font-size:10px;text-transform:uppercase;letter-spacing:1px">${sl}</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+          <button class="qb" style="width:34px;height:34px;font-size:18px;border:1px solid var(--bd);" data-a="botDn" data-grp="${g}">-</button>
+          <span style="color:var(--mt);font-size:12px;flex:1;text-align:center;">1 bottle = ${TOTS_PER_BOTTLE} tots</span>
+          <button class="qb" style="width:34px;height:34px;font-size:18px;border:1px solid var(--bd);" data-a="botUp" data-grp="${g}">+</button>
+          <button style="background:var(--hv);color:var(--gd);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;font-size:13px;font-family:Georgia,serif;cursor:pointer;" data-a="botSet" data-grp="${g}" data-name="${esc(name)}">Set Tots</button>
+        </div>
+        <div style="margin-top:10px;">${skuRows}</div>
+      </div>`;
+    }).join("");
+    return header+cards+`<button class="add-pbtn" data-a="newP">+ Add New Product</button>`;
+  }
+
+  // OTHER CATEGORIES — standard per-unit stock
+  const ps=(cgrp[S.adminProdCat]||[]).sort((a,b)=>a.n.localeCompare(b.n));
+  const rows=ps.map(p=>{
+    const stk=p.stock||0;
+    const sc=stk<=0?"var(--dn)":stk<=5?"var(--gd)":"var(--gn)";
+    const sl=stk<=0?"OUT":"x"+stk;
+    return`<div class="pitem"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="flex:1"><div style="color:var(--tx);font-size:15px;font-weight:bold">${esc(p.n)}${p.s?" ("+esc(p.s)+")":""}</div><div style="color:var(--mt);font-size:12px;margin:4px 0">M: R${p.m} | NM: R${p.p}${p.x?" | "+esc(p.x):""}</div></div><div style="text-align:center;min-width:52px"><div style="color:${sc};font-size:26px;font-weight:bold;line-height:1">${stk}</div><div style="color:${sc};font-size:10px;text-transform:uppercase;letter-spacing:1px">${sl}</div></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;"><div style="display:flex;align-items:center;gap:8px;"><button class="qb" style="width:34px;height:34px;font-size:20px;border:1px solid var(--bd);" data-a="stkDn" data-id="${p.id}">-</button><button style="background:var(--hv);color:var(--gd);border:1px solid var(--bd);border-radius:8px;padding:6px 12px;font-size:13px;font-family:Georgia,serif;cursor:pointer;" data-a="stkSet" data-id="${p.id}" data-name="${esc(p.n)}${p.s?" ("+esc(p.s)+")":""}">Set</button><button class="qb" style="width:34px;height:34px;font-size:20px;border:1px solid var(--bd);" data-a="stkUp" data-id="${p.id}">+</button></div><div class="pbtns"><button class="ebtn" data-a="editP" data-id="${p.id}">Edit</button><button class="dbtn" data-a="delP" data-id="${p.id}">Delete</button></div></div></div>`;
+  }).join("");
+  return header+rows;
+}
+
+function rLog(){
+  const actSection=S.logLoading?'<div class="ldg">Loading...</div>':
+    !S.activityLog.length?`<div style="color:var(--mt);font-size:14px;text-align:center;padding:16px 0;">No activity yet.<br><br><button style="background:var(--sf);color:var(--gd);border:1px solid var(--bd);border-radius:10px;padding:12px 20px;font-size:15px;font-family:Georgia,serif;cursor:pointer;" data-a="loadActivity">📋 Load Activity</button></div>`:
+    (()=>{const grp={};S.activityLog.forEach(e=>{if(!grp[e.date])grp[e.date]=[];grp[e.date].push(e);});return Object.entries(grp).sort((a,b)=>b[0].localeCompare(a[0])).map(([date,evts])=>`<div class="sec-lbl">${date}</div>${evts.map(e=>`<div style="display:flex;gap:12px;padding:10px 4px;border-bottom:1px solid var(--bd);"><span style="font-size:18px;flex-shrink:0;line-height:1.4">${e.icon||"📝"}</span><div style="flex:1"><div style="color:var(--tx);font-size:14px;">${esc(e.detail||"")}</div><div style="color:var(--mt);font-size:12px;margin-top:2px">${e.time||""} — ${esc(e.by||"")}</div></div></div>`).join("")}`).join("");})();
+  return`<div class="scr"><div class="tbar"><span style="color:var(--gd);font-weight:bold;font-size:16px">📋 Log</span><button class="ib" data-a="goAdmin">Back</button></div><div class="scroll"><div style="color:var(--gd);font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;">📋 Activity</div>${actSection}<div style="color:var(--gd);font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;margin:24px 0 12px;">🔧 App Changelog</div>${rAChangelog()}</div></div>`;
+}
+function rALog(){return rLog();}
+
+function rAChangelog(){
+  return CHANGELOG.map(v=>`<div style="margin-bottom:20px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><span style="color:var(--gd);font-size:16px;font-weight:bold">v${v.v}</span><span style="color:var(--mt);font-size:12px">${v.date}</span></div>${v.changes.map(c=>`<div style="color:var(--tx);font-size:13px;padding:4px 0 4px 12px;border-left:2px solid var(--gd);margin-bottom:3px;">• ${c}</div>`).join("")}</div>`).join("");
+}
+function rAVols(){
+  const vl=S.adminVolList?S.adminVolList.map(v=>`<div class="vol-item"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;"><span style="color:var(--tx);font-size:15px">👤 ${esc(v.name)}</span><div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="rbtn" data-a="resetPin" data-id="${v.id}">Reset PIN</button><button style="background:var(--hv);color:var(--gn);border:1px solid var(--bd);border-radius:8px;padding:6px 14px;font-size:13px;font-family:Georgia,serif;cursor:pointer;" data-a="genInvite" data-id="${v.id}" data-name="${esc(v.name)}">📨 Invite</button><button class="dbtn" data-a="delV" data-id="${v.id}">Remove</button></div></div><div style="color:var(--mt);font-size:12px;margin-top:4px">PIN: ${v.pin?"Set ✅":"Not set ❌"}</div></div>`).join(""):`<div class="ldg">Loading...</div>`;
+  return`${vl}<div class="arow" style="margin-top:12px"><input class="ainp" id="nvI" placeholder="New volunteer name..." autocomplete="off"><button class="ago" data-a="addV">Add</button></div>`;
+}
+function rAAdmins(){
+  return S.adminList.map(a=>`<div class="vol-item"><div style="display:flex;justify-content:space-between;align-items:center"><span style="color:var(--tx);font-size:15px">🔐 ${esc(a.name)} <span style="color:var(--mt);font-size:12px">PIN: ${a.pin}</span></span><button class="dbtn" data-a="delA" data-id="${a.id}">Remove</button></div></div>`).join("")+`<div class="sec-lbl">Add Admin</div><input class="ainp" id="anI" placeholder="Name..." style="width:100%;margin-bottom:8px" autocomplete="off"><input class="ainp" id="apI" placeholder="4-digit PIN..." type="number" style="width:100%;margin-bottom:8px"><button class="save-btn" data-a="addA">Add Admin</button>`;
+}
+function rEditModal(){
+  const d=S.editProdData;
+  const cats=["beer","spirits","ciders","minerals","wine","food"].map(c=>`<option value="${c}"${d.cat===c?" selected":""}>${c.charAt(0).toUpperCase()+c.slice(1)}</option>`).join("");
+  return`<div class="modal-ov"><div class="modal-card"><div style="color:var(--gd);font-size:18px;font-weight:bold;margin-bottom:16px">${S.newProdMode?"New Product":"Edit Product"}</div><div class="frow"><div class="flbl">Category</div><select class="fsel" id="epC">${cats}</select></div><div class="frow"><div class="flbl">Name</div><input class="finp" id="epN" value="${esc(d.n)}" placeholder="e.g. Castle Lager"></div><div class="frow"><div class="flbl">Size / Variant</div><input class="finp" id="epS" value="${esc(d.s)}" placeholder="e.g. 330ml, Single, Red"></div><div class="frow2"><div><div class="flbl">Member (R)</div><input class="finp" id="epM" type="number" value="${d.m}"></div><div><div class="flbl">Non-Member (R)</div><input class="finp" id="epP" type="number" value="${d.p}"></div></div><div class="frow" style="margin-top:12px"><div class="flbl">Note</div><input class="finp" id="epX" value="${esc(d.x)}" placeholder="e.g. Mix incl"></div><button class="save-btn" data-a="saveP">Save Product</button><button class="cancel-btn" data-a="cnclEdit">Cancel</button></div></div>`;
+}
+function hook(){
+  document.getElementById("app").addEventListener("click",hC);
+  const ri=document.getElementById("regNI");
+  if(ri){ri.addEventListener("keydown",e=>{if(e.key==="Enter")doRegCheck();});ri.focus();}
+}
+async function hC(e){
+  lastAct=Date.now();
+  const b=e.target.closest("[data-a]");if(!b)return;
+  const a=b.dataset.a,v=b.dataset.v,k=b.dataset.k;
+  if(a==="lpnk")doLPnk(v);
+  else if(a==="goReg")set({screen:"register",regStep:1,regName:"",regPin1:"",regPin2:"",regErr:""});
+  else if(a==="goLogin")set({screen:"login",pinInput:"",loginErr:false,regStep:0,inactivityModal:false,menuCat:null,confirmEndShift:false,poscat:null,adminProdCat:null});
+  else if(a==="goAdminLog")set({logModal:true});
+  else if(a==="adminReports"){set({screen:"report",ldDates:true,selDate:null,sales:[],reportMode:"admin"});try{set({allDates:await loadDates(),ldDates:false});}catch(e){set({ldDates:false});}}
+  else if(a==="goAdmin")set({screen:"admin"});
+  else if(a==="closeLog")set({logModal:false});
+  else if(a==="doVoid")doVoidSale(b.dataset.id);
+  else if(a==="doUnvoid")doUnvoidSale(b.dataset.id);
+  else if(a==="doDelOne")doDelOneSale(b.dataset.id);
+  else if(a==="delDate")doDelDate(b.dataset.date);
+  else if(a==="toggleSale"){const id=e.target.closest("[data-saleid]")?.dataset.saleid;if(!id)return;const sel=S.selectedSales.includes(id)?S.selectedSales.filter(x=>x!==id):[...S.selectedSales,id];set({selectedSales:sel});}
+  else if(a==="enterSelect")set({selectMode:true,selectedSales:[]});
+  else if(a==="cancelSelect")set({selectMode:false,selectedSales:[]});
+  else if(a==="selAll")set({selectedSales:S.sales.map(s=>s.id)});
+  else if(a==="delSelected")doDelSelected();
+  else if(a==="regCheck")doRegCheck();
+  else if(a==="rp1")doRp1(v);
+  else if(a==="rp2")doRp2(v);
+  else if(a==="goPos")set({screen:"pos",menuCat:null,poscat:null});
+  else if(a==="menuDrill")set({menuCat:b.dataset.cat});
+  else if(a==="menuBack")set({menuCat:null});
+  else if(a==="sm")set({mem:v==="1"});
+  else if(a==="setPoscat")set({poscat:b.dataset.cat});
+  else if(a==="setAdminProdCat")set({adminProdCat:b.dataset.cat});
+  else if(a==="clearAdminProdCat")set({adminProdCat:null});
+  else if(a==="clearPoscat")set({poscat:null});
+  else if(a==="sc")set({cat:v});
+  else if(a==="ap")doAP(b.dataset.id);
+  else if(a==="qu")doQ(k,1);
+  else if(a==="qd")doQ(k,-1);
+  else if(a==="rm")set({order:S.order.filter(i=>i.k!==k)});
+  else if(a==="sp")set({pay:v});
+  else if(a==="done")set({confirmPayModal:true});
+  else if(a==="confirmPay"){set({pay:b.dataset.pay,confirmPayModal:false});doSale();}
+  else if(a==="cancelPay")set({confirmPayModal:false});
+  else if(a==="gr")doGR();
+  else if(a==="ref")doGR();
+  else if(a==="nk")doNK(v);
+  else if(a==="doneChange")set({screen:"pos",changePaid:""});
+  else if(a==="skipChange")set({screen:"pos",changePaid:""});
+  else if(a==="goCO")doGoCO();
+  else if(a==="saveCO")doSaveCO();
+  else if(a==="selD")doSelD(b.dataset.d);
+  else if(a==="clrD")set({selDate:null,sales:[],selectMode:false,selectedSales:[]});
+  else if(a==="goEndShift"){if(confirm("End your shift?\n\nThis will take you to the cash up and sign out screen."))doGoEndShift();return;}
+  else if(a==="saveES")doSaveES();
+  else if(a==="doLogout")doLogout();
+  else if(a==="stillHere")set({inactivityModal:false,menuCat:null,confirmEndShift:false,poscat:null,adminProdCat:null});
+  else if(a==="goAdminPin"){set({screen:"adminPin",adminPinInput:"",adminPinErr:false});S.adminList=await loadAdmins();render();}
+  else if(a==="apnk")doAPnk(v);
+  else if(a==="aTab"){set({aSection:v,adminProdCat:null});if(v==="volunteers"){S.adminVolList=await loadVols();render();}else if(v==="admins"){S.adminList=await loadAdmins();render();}else if(v==="log"){set({logView:"changelog"});}}
+  else if(a==="logView"){const nv=b.dataset.v;S.logView=nv;render();if(nv==="activity"&&!S.activityLog.length){S.logLoading=true;render();loadLog().then(l=>{S.activityLog=l;S.logLoading=false;render();}).catch(()=>{S.logLoading=false;render();})}}
+  else if(a==="loadActivity"){S.logLoading=true;render();loadLog().then(l=>{S.activityLog=l;S.logLoading=false;render();}).catch(()=>{S.logLoading=false;render();});}
+  else if(a==="editP")doEditP(b.dataset.id);
+  else if(a==="delP")doDelP(b.dataset.id);
+  else if(a==="resetProds")resetProducts();
+  else if(a==="stkUp")stkUpdate(b.dataset.id,1);
+  else if(a==="stkDn")stkUpdate(b.dataset.id,-1);
+  else if(a==="stkSet")doStkSet(b.dataset.id,b.dataset.name);
+  else if(a==="botUp")doAdjustBottle(b.dataset.grp,1);
+  else if(a==="botDn")doAdjustBottle(b.dataset.grp,-1);
+  else if(a==="botSet")doSetTots(b.dataset.grp,b.dataset.name);
+  else if(a==="newP")set({newProdMode:true,editProd:null,editProdData:{cat:"beer",n:"",s:"",m:"",p:"",x:""}});
+  else if(a==="saveP")doSaveP();
+  else if(a==="cnclEdit")set({editProd:null,newProdMode:false});
+  else if(a==="resetPin")doResetPin(b.dataset.id);
+  else if(a==="genInvite")doGenInvite(b.dataset.id,b.dataset.name);
+  else if(a==="delV")doDelV(b.dataset.id);
+  else if(a==="addV")doAddV();
+  else if(a==="delA")doDelA(b.dataset.id);
+  else if(a==="addA")doAddA();
+}
+async function doLPnk(v){
+  if(v==="DEL"){set({pinInput:S.pinInput.slice(0,-1),loginErr:false});return;}
+  if(v==="OK"){
+    try{const vol=await loginByPin(S.pinInput);if(vol){const pr=await loadProds().catch(()=>S.products);const ss=await loadSpiritStock().catch(()=>({}));set({vol:vol.name,volId:vol.id,screen:"menu",pinInput:"",loginErr:false,products:pr,spiritStock:ss,order:[],cat:"beer"});}else set({loginErr:true,pinInput:""});}
+    catch(e){console.error("Login error:",e);set({loginErr:true,pinInput:""});}
+    return;
+  }
+  if(S.pinInput.length>=4)return;
+  const next=S.pinInput+v;set({pinInput:next,loginErr:false});
+  if(next.length===4){
+    try{const vol=await loginByPin(next);if(vol){const pr=await loadProds().catch(()=>S.products);const ss=await loadSpiritStock().catch(()=>({}));setTimeout(()=>{set({vol:vol.name,volId:vol.id,screen:"menu",pinInput:"",loginErr:false,products:pr,spiritStock:ss,order:[],cat:"beer"});addLog("👤",vol.name,"Logged in");history.pushState({loggedIn:true},'');},100);}else setTimeout(()=>set({loginErr:true,pinInput:""}),200);}
+    catch(e){console.error("Login error:",e);setTimeout(()=>set({loginErr:true,pinInput:""}),200);}
+  }
+}
+async function doRegCheck(){
+  const el=document.getElementById("regNI");const name=el?el.value.trim():"";
+  if(!name){set({regErr:"Please enter your name"});return;}
+  const vol=await volByName(name);
+  if(!vol){set({regErr:"Name not found. Ask your admin to add you."});return;}
+  if(vol.pin){set({regErr:"PIN already set. Contact admin to reset."});return;}
+  set({regStep:2,regName:vol.name,regVolId:vol.id,regErr:""});
+}
+async function doRp1(v){
+  if(v==="DEL"){set({regPin1:S.regPin1.slice(0,-1),regErr:""});return;}
+  if(S.regPin1.length>=4&&v!=="OK")return;
+  if(v==="OK"){
+    if(S.regPin1.length<4){set({regErr:"PIN must be 4 digits"});return;}
+    const taken=await pinTaken(S.regPin1);
+    if(taken){set({regErr:"PIN already taken. Choose another.",regPin1:""});return;}
+    set({regStep:3,regErr:""});return;
+  }
+  const next=S.regPin1+v;set({regPin1:next,regErr:""});
+  if(next.length===4){const taken=await pinTaken(next);if(taken)setTimeout(()=>set({regErr:"PIN already taken. Choose another.",regPin1:""}),200);else setTimeout(()=>set({regStep:3,regErr:""}),200);}
+}
+async function doRp2(v){
+  if(v==="DEL"){set({regPin2:S.regPin2.slice(0,-1),regErr:""});return;}
+  if(S.regPin2.length>=4&&v!=="OK")return;
+  if(v==="OK"){
+    if(S.regPin2!==S.regPin1){set({regErr:"PINs do not match",regPin2:""});return;}
+    await setVolPin(S.regVolId,S.regPin1);const pr=await loadProds();
+    set({vol:S.regName,volId:S.regVolId,screen:"menu",products:pr,order:[],cat:"beer",regStep:0,regPin1:"",regPin2:""});return;
+  }
+  const next=S.regPin2+v;set({regPin2:next,regErr:""});
+  if(next.length===4){
+    if(next!==S.regPin1){setTimeout(()=>set({regErr:"PINs do not match",regPin2:""}),200);}
+    else{await setVolPin(S.regVolId,S.regPin1);const pr=await loadProds();setTimeout(()=>{set({vol:S.regName,volId:S.regVolId,screen:"menu",products:pr,order:[],cat:"beer",regStep:0,regPin1:"",regPin2:""});history.pushState({loggedIn:true},'');},200);}
+  }
+}
+function doLogout(){set({screen:"login",vol:"",volId:"",order:[],sales:[],pinInput:"",loginErr:false,inactivityModal:false,selDate:null,esSales:[],esSaved:false,esActual:0,confirmPayModal:false,logModal:false,rosterModal:false,shifts:[],rosterAdminMode:false,rosterOffset:0,logView:'activity',activityLog:[],logLoading:false});}
+function doAP(id){const f=S.products.find(x=>x.id===id);if(!f)return;
+  if(f.grp){if((S.spiritStock[f.grp]||0)<(f.tot||1))return;}
+  else if(f.stock!==undefined&&f.stock!==null&&f.stock<=0)return;
+  const price=gp(f);const name=f.s?f.n+" ("+f.s+")":f.n;const k=id+(S.mem?"-m":"-n");const ex=S.order.find(i=>i.k===k);set({order:ex?S.order.map(i=>i.k===k?{...i,qty:i.qty+1}:i):[...S.order,{k,n:name,price,qty:1}]});}
+function doQ(k,d){set({order:S.order.map(i=>i.k===k?{...i,qty:i.qty+d}:i).filter(i=>i.qty>0)});}
+async function doSale(){
+  if(!S.order.length)return;const t=tot();
+  const sale={vol:S.vol,mem:S.mem,items:S.order.map(i=>({n:i.n,price:i.price,qty:i.qty,pid:i.k.slice(0,-2)})),total:t,pay:S.pay,time:tim(),voided:false};
+  try{await saveSale(sale);addLog("💰",S.vol,"Sold R"+t+" ("+S.pay+") — "+S.order.map(i=>i.n+" x"+i.qty).join(", "));
+    // Auto-decrement stock (spirits use shared tot pool, others use per-unit stock)
+    try{
+      const batch=db.batch();
+      const spiritDeltas={};
+      let hasUpdates=false;
+      S.order.forEach(item=>{
+        const pid=item.k.slice(0,-2);
+        const prod=S.products.find(p=>p.id===pid);
+        if(!prod)return;
+        if(prod.grp){
+          const totsUsed=(prod.tot||1)*item.qty;
+          spiritDeltas[prod.grp]=(spiritDeltas[prod.grp]||0)-totsUsed;
+          batch.set(db.collection("spiritStock").doc(prod.grp),{tots:firebase.firestore.FieldValue.increment(-totsUsed)},{merge:true});
+          hasUpdates=true;
+        } else if((prod.stock||0)>0){
+          const ns=Math.max(0,(prod.stock||0)-item.qty);
+          batch.update(db.collection("products").doc(pid),{stock:ns});
+          hasUpdates=true;
+        }
+      });
+      if(hasUpdates){
+        await batch.commit();
+        const updProds=S.products.map(p=>{
+          const oi=S.order.find(i=>i.k.slice(0,-2)===p.id);
+          return oi&&!p.grp&&(p.stock||0)>0?{...p,stock:Math.max(0,(p.stock||0)-oi.qty)}:p;
+        });
+        const newSpiritStock={...S.spiritStock};
+        Object.entries(spiritDeltas).forEach(([g,d])=>{newSpiritStock[g]=Math.max(0,(newSpiritStock[g]||0)+d);});
+        S.products=updProds;
+        S.spiritStock=newSpiritStock;
+      }
+    }catch(e){console.error("Stock update error:",e);}
+    if(S.pay==="Cash"){set({order:[],screen:"change",changeSale:t,changePaid:""});}else{set({order:[],flash:true,famt:t,serr:false});setTimeout(()=>set({flash:false}),2000);}}
+  catch(err){console.error(err);set({serr:true});}
+}
+function doNK(v){if(v==="C")set({changePaid:""});else if(v==="DEL")set({changePaid:S.changePaid.slice(0,-1)});else if(S.changePaid.length<6)set({changePaid:S.changePaid+v});}
+async function doGR(){set({screen:"report",ldDates:true,selDate:null,sales:[],reportMode:'vol',selectMode:false,selectedSales:[]});try{set({allDates:await loadDates(),ldDates:false});}catch(e){set({ldDates:false,rerr:true});}}
+async function doSelD(d){set({selDate:d,lrpt:true});try{set({sales:await loadByDate(d),lrpt:false});}catch(e){set({lrpt:false,rerr:true});}}
+async function doGoCO(){const s=S.selDate===tod()&&S.sales.length?S.sales:await loadByDate(tod());const cashT=s.filter(x=>x.pay==="Cash"&&!x.voided).reduce((a,x)=>a+x.total,0);set({screen:"cashout",coExpected:cashT,coActual:0,coSaved:false});}
+async function doSaveCO(){const el=document.getElementById("coI");const val=parseFloat(el?el.value:0)||0;await db.collection("cashouts").add({vol:S.vol,date:tod(),time:tim(),expected:S.coExpected,actual:val,variance:val-S.coExpected,ts:firebase.firestore.FieldValue.serverTimestamp()});set({coSaved:true,coActual:val});}
+async function doGoEndShift(){set({screen:"endshift",esLoading:true,esSaved:false,esActual:0,inactivityModal:false,menuCat:null,confirmEndShift:false,poscat:null,adminProdCat:null});try{const snap=await db.collection("sales").where("date","==",tod()).where("vol","==",S.vol).get();set({esSales:snap.docs.map(d=>d.data()),esLoading:false});}catch(e){set({esLoading:false,esSales:[]});}}
+async function doSaveES(){const el=document.getElementById("esI");const val=parseFloat(el?el.value:0)||0;const cash=S.esSales.filter(x=>x.pay==="Cash").reduce((a,x)=>a+x.total,0);await db.collection("cashouts").add({vol:S.vol,date:tod(),time:tim(),expected:cash,actual:val,variance:val-cash,ts:firebase.firestore.FieldValue.serverTimestamp()});addLog("💵",S.vol,"Cash count: R"+val+" (expected R"+cash+", variance R"+(val-cash)+")");set({esSaved:true,esActual:val});}
+async function doAPnk(v){
+  if(v==="DEL"){set({adminPinInput:S.adminPinInput.slice(0,-1),adminPinErr:false});return;}
+  if(v==="OK"){
+    try{const ok=await checkAdminPin(S.adminPinInput);if(ok){const pr=await loadProds().catch(()=>S.products);const vl=await loadVols().catch(()=>[]);const ss=await loadSpiritStock().catch(()=>({}));set({screen:"admin",adminPinInput:"",adminPinErr:false,products:pr,adminVolList:vl,spiritStock:ss});history.pushState({loggedIn:true},'');}else set({adminPinErr:true,adminPinInput:""});}
+    catch(e){console.error("Admin login error:",e);set({adminPinErr:true,adminPinInput:""});}
+    return;
+  }
+  if(S.adminPinInput.length>=4)return;
+  const next=S.adminPinInput+v;set({adminPinInput:next,adminPinErr:false});
+  if(next.length===4){
+    try{const ok=await checkAdminPin(next);if(ok){const pr=await loadProds().catch(()=>S.products);const vl=await loadVols().catch(()=>[]);const ss=await loadSpiritStock().catch(()=>({}));setTimeout(()=>{set({screen:"admin",adminPinInput:"",adminPinErr:false,products:pr,adminVolList:vl,spiritStock:ss});history.pushState({loggedIn:true},'');},100);}else setTimeout(()=>set({adminPinErr:true,adminPinInput:""}),200);}
+    catch(e){console.error("Admin login error:",e);setTimeout(()=>set({adminPinErr:true,adminPinInput:""}),200);}
+  }
+}
+function doEditP(id){const p=S.products.find(x=>x.id===id);if(!p)return;set({editProd:id,newProdMode:false,editProdData:{cat:p.cat,n:p.n,s:p.s||"",m:p.m,p:p.p,x:p.x||""}});}
+async function doDelP(id){if(!confirm("Delete this product?"))return;await delProd(id);set({products:S.products.filter(p=>p.id!==id)});}
+async function doSaveP(){const d={cat:document.getElementById("epC")?.value||"beer",n:document.getElementById("epN")?.value?.trim()||"",s:document.getElementById("epS")?.value?.trim()||"",m:document.getElementById("epM")?.value||0,p:document.getElementById("epP")?.value||0,x:document.getElementById("epX")?.value?.trim()||""};if(!d.n){alert("Product name required");return;}if(S.editProd)d.id=S.editProd;await saveProd(d);addLog("✏️","Admin",(S.editProd?"Edited":"Added")+" product: "+d.n+(d.s?" ("+d.s+")":"")+" M:R"+d.m+" NM:R"+d.p);set({products:await loadProds(),editProd:null,newProdMode:false});}
+async function doGenInvite(id,name){
+  try{
+    const code=await createInvite(id,name);
+    const link=window.location.origin+"?invite="+code;
+    addLog("📨","Admin","Generated invite link for "+name);
+    // Try clipboard first, always fall back to prompt
+    try{
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        await navigator.clipboard.writeText(link);
+        alert("✅ Link copied to clipboard!\n\nSend this to "+name+" via WhatsApp:\n\n"+link+"\n\nThey tap it to set their PIN. Link expires once used.");
+      } else { throw new Error("no clipboard"); }
+    }catch(ce){
+      prompt("Copy and send this link to "+name+" via WhatsApp:",link);
+    }
+  }catch(e){console.error(e);alert("Failed to create invite — make sure you are connected to the internet and try again.");}
+}
+async function doResetPin(id){if(!confirm("Reset PIN? Volunteer will need to register again."))return;await resetVolPin(id);S.adminVolList=await loadVols();render();}
+async function doDelV(id){if(!confirm("Remove this volunteer?"))return;await delVol(id);S.adminVolList=(S.adminVolList||[]).filter(v=>v.id!==id);render();}
+async function doAddV(){const el=document.getElementById("nvI");const n=el?el.value.trim():"";if(!n)return;await addVol(n);S.adminVolList=await loadVols();if(el)el.value="";render();}
+async function doDelA(id){if(S.adminList.length<=1){alert("Cannot remove last admin!");return;}if(!confirm("Remove admin?"))return;await delAdmin(id);set({adminList:S.adminList.filter(a=>a.id!==id)});}
+async function doAddA(){const n=document.getElementById("anI")?.value?.trim();const p=document.getElementById("apI")?.value?.trim();if(!n||!p){alert("Name and PIN required");return;}if(p.length<4){alert("PIN must be 4 digits");return;}await addAdmin(n,p);set({adminList:await loadAdmins()});}
+let lastAct=Date.now();
+setInterval(()=>{if(["pos","menu"].includes(S.screen)&&!S.inactivityModal&&Date.now()-lastAct>30*60*1000)set({inactivityModal:true});},60000);
+async function resetProducts(){
+  if(!confirm("Reset ALL products to the updated price list? This cannot be undone."))return;
+  const snap=await db.collection("products").get();
+  const batch=db.batch();
+  snap.docs.forEach(d=>batch.delete(d.ref));
+  await batch.commit();
+  await seedProds();
+  const prods=await loadProds();
+  set({products:prods,editProd:null,newProdMode:false});
+  alert("Product list has been reset to the latest prices!");
+}
+
+async function doDelDate(date){
+  if(!confirm("Permanently delete ALL sales for "+date+"?\n\nThis cannot be undone."))return;
+  if(!confirm("Are you sure? This will delete "+S.sales.length+" sale record(s) for "+date+"."))return;
+  try{
+    const snap=await db.collection("sales").where("date","==",date).get();
+    const batch=db.batch();
+    snap.docs.forEach(d=>batch.delete(d.ref));
+    await batch.commit();
+    set({selDate:null,sales:[],allDates:S.allDates.filter(x=>x.d!==date)});
+  }catch(e){console.error("Delete error:",e);alert("Failed to delete. Please try again.");}
+}
+async function doDelOneSale(saleId){
+  const sale=S.sales.find(s=>s.id===saleId);if(!sale)return;
+  if(!confirm("Permanently delete this sale?\nR"+sale.total+" ("+sale.pay+") by "+sale.vol+"\n\nThis cannot be undone."))return;
+  try{
+    await db.collection("sales").doc(saleId).delete();addLog("🗑️","Admin","Deleted sale R"+sale.total+" ("+sale.pay+") by "+sale.vol+" at "+sale.time);
+    const remaining=S.sales.filter(s=>s.id!==saleId);
+    const newTotal=remaining.filter(s=>!s.voided).reduce((a,s)=>a+s.total,0);
+    const newAllDates=remaining.length===0?S.allDates.filter(x=>x.d!==S.selDate):S.allDates.map(x=>x.d===S.selDate?{...x,t:newTotal}:x);
+    set({sales:remaining,selDate:remaining.length===0?null:S.selDate,allDates:newAllDates});
+  }catch(e){console.error("Delete error:",e);alert("Failed to delete. Try again.");}
+}
+async function doDelSelected(){
+  if(!S.selectedSales.length){alert("No sales selected.");return;}
+  if(!confirm("Delete "+S.selectedSales.length+" sale record(s)?\n\nThis cannot be undone."))return;
+  try{
+    const batch=db.batch();
+    S.selectedSales.forEach(id=>batch.delete(db.collection("sales").doc(id)));
+    await batch.commit();
+    const remaining=S.sales.filter(s=>!S.selectedSales.includes(s.id));
+    const newTotal=remaining.filter(s=>!s.voided).reduce((a,s)=>a+s.total,0);
+    const newAllDates=remaining.length===0?S.allDates.filter(x=>x.d!==S.selDate):S.allDates.map(x=>x.d===S.selDate?{...x,t:newTotal}:x);
+    set({sales:remaining,selectedSales:[],selectMode:false,selDate:remaining.length===0?null:S.selDate,allDates:newAllDates});
+  }catch(e){console.error("Delete error:",e);alert("Failed to delete. Please try again.");}
+}
+async function doVoidSale(saleId){
+  const sale=S.sales.find(s=>s.id===saleId);if(!sale)return;
+  if(!confirm("Void this sale?\nR"+sale.total+" ("+sale.pay+") by "+sale.vol+"\n\nStock will be restored."))return;
+  try{
+    await voidSaleDb(saleId,S.vol||"admin");addLog("🚫",S.vol||"Admin","Voided sale R"+sale.total+" ("+sale.pay+") by "+sale.vol+" at "+sale.time);
+    // Reverse stock
+    const batch=db.batch();const spiritDeltas={};
+    sale.items.forEach(item=>{
+      let prod=item.pid?S.products.find(p=>p.id===item.pid):null;
+      if(!prod)prod=S.products.find(p=>(p.s?p.n+" ("+p.s+")":p.n)===item.n);
+      if(!prod)return;
+      if(prod.grp){const tb=(prod.tot||1)*item.qty;spiritDeltas[prod.grp]=(spiritDeltas[prod.grp]||0)+tb;batch.set(db.collection("spiritStock").doc(prod.grp),{tots:firebase.firestore.FieldValue.increment(tb)},{merge:true});}
+      else if(prod.stock!==undefined){batch.update(db.collection("products").doc(prod.id),{stock:firebase.firestore.FieldValue.increment(item.qty)});}
+    });
+    await batch.commit();
+    const ns={...S.spiritStock};Object.entries(spiritDeltas).forEach(([g,d])=>{ns[g]=(ns[g]||0)+d;});
+    const np=S.products.map(p=>{const item=sale.items.find(i=>item.pid?i.pid===p.id:(p.s?p.n+" ("+p.s+")":p.n)===i.n);return item&&!p.grp&&p.stock!==undefined?{...p,stock:(p.stock||0)+item.qty}:p;});
+    set({sales:S.sales.map(s=>s.id===saleId?{...s,voided:true,voidedBy:S.vol||"admin"}:s),spiritStock:ns,products:np});
+  }catch(e){console.error("Void error:",e);alert("Failed to void. Try again.");}
+}
+async function doUnvoidSale(saleId){
+  const sale=S.sales.find(s=>s.id===saleId);if(!sale)return;
+  if(!confirm("Un-void this sale?\nR"+sale.total+" by "+sale.vol+"\n\nStock will be re-decremented."))return;
+  try{
+    await unvoidSaleDb(saleId);addLog("↩️",S.vol||"Admin","Un-voided sale R"+sale.total+" by "+sale.vol);
+    const batch=db.batch();const spiritDeltas={};
+    sale.items.forEach(item=>{
+      let prod=item.pid?S.products.find(p=>p.id===item.pid):null;
+      if(!prod)prod=S.products.find(p=>(p.s?p.n+" ("+p.s+")":p.n)===item.n);
+      if(!prod)return;
+      if(prod.grp){const tu=(prod.tot||1)*item.qty;spiritDeltas[prod.grp]=(spiritDeltas[prod.grp]||0)-tu;batch.set(db.collection("spiritStock").doc(prod.grp),{tots:firebase.firestore.FieldValue.increment(-tu)},{merge:true});}
+      else if(prod.stock!==undefined){const ns=Math.max(0,(prod.stock||0)-item.qty);batch.update(db.collection("products").doc(prod.id),{stock:ns});}
+    });
+    await batch.commit();
+    const ns={...S.spiritStock};Object.entries(spiritDeltas).forEach(([g,d])=>{ns[g]=Math.max(0,(ns[g]||0)+d);});
+    const np=S.products.map(p=>{const item=sale.items.find(i=>item.pid?i.pid===p.id:(p.s?p.n+" ("+p.s+")":p.n)===i.n);return item&&!p.grp&&p.stock!==undefined?{...p,stock:Math.max(0,(p.stock||0)-item.qty)}:p;});
+    set({sales:S.sales.map(s=>s.id===saleId?{...s,voided:false,voidedBy:null}:s),spiritStock:ns,products:np});
+  }catch(e){console.error("Unvoid error:",e);alert("Failed to un-void. Try again.");}
+}
+
+const stkUpdate=async(id,delta)=>{
+  const prod=S.products.find(p=>p.id===id);if(!prod)return;
+  const newStk=Math.max(0,(prod.stock||0)+delta);
+  await db.collection("products").doc(id).update({stock:newStk});
+  set({products:S.products.map(p=>p.id===id?{...p,stock:newStk}:p)});
+};
+function doStkSet(id,name){
+  const prod=S.products.find(p=>p.id===id);if(!prod)return;
+  const val=prompt("Set stock quantity for:\n"+name,prod.stock||0);
+  if(val===null||val==="")return;
+  const n=parseInt(val);
+  if(isNaN(n)||n<0){alert("Please enter a valid number");return;}
+  stkUpdate(id,n-(prod.stock||0));
+}
+async function doAdjustBottle(g,bottles){
+  const delta=bottles*TOTS_PER_BOTTLE;
+  const cur=S.spiritStock[g]||0;
+  const next=Math.max(0,cur+delta);
+  await setSpiritTots(g,next);
+  addLog("📦","Admin",(bottles>0?"Added "+bottles+" bottle(s) of ":"Removed "+Math.abs(bottles)+" bottle(s) of ")+g+" → "+next+" tots");
+  set({spiritStock:{...S.spiritStock,[g]:next}});
+}
+function doSetTots(g,name){
+  const cur=S.spiritStock[g]||0;
+  const val=prompt("Set total tots in stock for "+name+":\n(1 bottle = "+TOTS_PER_BOTTLE+" tots)",cur);
+  if(val===null||val==="")return;
+  const n=parseInt(val);
+  if(isNaN(n)||n<0){alert("Please enter a valid number");return;}
+  setSpiritTots(g,n).then(()=>{set({spiritStock:{...S.spiritStock,[g]:n}});});
+}
+
+async function initApp(){
+  try{
+    let vols=await loadVols();
+    if(!vols.length){const b=db.batch();DEF_VOLS.forEach((n,i)=>{b.set(db.collection("volunteers").doc(),{name:n,pin:null,ord:i});});await b.commit();vols=await loadVols();}
+    else{vols.forEach(v=>{if(!("pin" in v))db.collection("volunteers").doc(v.id).update({pin:null});});}
+    let prods=await loadProds();
+    if(!prods.length){await seedProds();prods=await loadProds();}
+    const migrated=await ensureSpiritGrpFields();
+    if(migrated)prods=await loadProds();
+    await ensureSpiritStockDocs();
+    const spiritStock=await loadSpiritStock().catch(()=>({}));
+    const aSnap=await db.collection("admins").get();
+    if(aSnap.empty)await addAdmin("Admin","0000");
+    // Check for invite link
+  const _urlp=new URLSearchParams(window.location.search);
+  const _inv=_urlp.get("invite");
+  if(_inv){
+    try{
+      const _invData=await getInvite(_inv);
+      if(_invData&&!_invData.used){
+        const _vol=await volByName(_invData.name);
+        if(_vol&&!_vol.pin){
+          window.history.replaceState({},"",window.location.pathname);
+          set({products:prods,spiritStock,screen:"register",regStep:2,regName:_vol.name,regVolId:_vol.id,regPin1:"",regPin2:"",regErr:"",regInviteCode:_inv});
+          return;
+        }
+      }
+    }catch(_e){console.error("Invite error:",_e);}
+  }
+  set({products:prods,spiritStock,screen:"login"});
+  }catch(e){console.error("Init:",e);set({products:SEED.map(p=>({...p})),screen:"login"});}
+}
+window.addEventListener('popstate',function(){
+  if(S.vol&&['pos','menu','change','cashout','endshift','report'].includes(S.screen)){
+    history.pushState({loggedIn:true},'');
+    if(confirm("End your shift?\n\nThis will take you to the cash up and sign out screen.")){
+      doGoEndShift();
+    }
+  } else if(S.screen==='admin'){
+    history.pushState({loggedIn:true},'');
+    if(confirm("Exit Admin Panel?")){
+      set({screen:'login',pinInput:'',loginErr:false,adminPinInput:'',adminPinErr:false,adminProdCat:null,aSection:'products'});
+    }
+  }
+});
+// Roster global functions
+window._rf={
+  DEFAULT_START:"16:30",
+  DEFAULT_END:"22:00",
+  getUpcomingFridays:function(n,offset){
+    offset=offset||0;
+    var today=new Date();var d=new Date(today);var ff=[];
+    while(d.getDay()!==5){d.setDate(d.getDate()+1);}
+    d.setDate(d.getDate()+(offset*7));
+    for(var i=0;i<n;i++){ff.push(new Date(d));d.setDate(d.getDate()+7);}
+    return ff;
+  },
+  prevWeeks:function(){S.rosterOffset=Math.max(0,S.rosterOffset-8);render();},
+  nextWeeks:function(){S.rosterOffset=S.rosterOffset+8;render();},
+  dateToStr:function(d){
+    var y=d.getFullYear();var m=String(d.getMonth()+1).padStart(2,"0");var dy=String(d.getDate()).padStart(2,"0");
+    return y+"/"+m+"/"+dy;
+  },
+  dayName:function(d){return["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][d.getDay()];},
+  open:function(isAdmin){S.rosterModal=true;S.rosterAdminMode=!!isAdmin;S.shiftsLoading=true;render();loadShifts().then(function(s){S.shifts=s;S.shiftsLoading=false;render();}).catch(function(){S.shiftsLoading=false;render();});},
+  close:function(){S.rosterModal=false;render();},
+  joinAuto:function(date,dayName){
+    var msg="Confirm availability for "+dayName+" "+date.split("/")[2]+" "+["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][parseInt(date.split("/")[1])-1]+"\n16:30 – 22:00\n\nNote: if your plans change, please contact the admin.";
+    if(!confirm(msg))return;
+    createShift({date:date,dayName:dayName,startTime:window._rf.DEFAULT_START,endTime:window._rf.DEFAULT_END,label:"",slotsNeeded:4}).then(function(ref){
+      return joinShift(ref.id,S.vol);
+    }).then(function(){return loadShifts();}).then(function(s){S.shifts=s;render();});
+  },
+  join:function(id,date,dayName,startTime,endTime){
+    var d=date.split("/");var mon=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][parseInt(d[1])-1];
+    var msg="Confirm availability for "+dayName+" "+d[2]+" "+mon+"\n"+startTime+" – "+endTime+"\n\nNote: if your plans change, please contact the admin.";
+    if(!confirm(msg))return;
+    joinShift(id,S.vol).then(function(){return loadShifts();}).then(function(s){S.shifts=s;render();});
+  },
+  leave:function(id){/* locked - admin only */},
+  removeVol:function(shiftId,volName){
+    if(!confirm("Remove "+volName+" from this shift?"))return;
+    leaveShift(shiftId,volName).then(function(){return loadShifts();}).then(function(s){S.shifts=s;render();});
+    addLog("🗑️","Admin","Removed "+volName+" from shift");
+  },
+  del:function(id){if(!confirm("Remove this shift?"))return;deleteShift(id).then(function(){return loadShifts();}).then(function(s){S.shifts=s;render();});},
+  addFriday:function(dateStr,dayName){
+    var existing=(S.shifts||[]).find(function(s){return s.date===dateStr;});
+    if(existing){if(confirm("Remove shift for "+dayName+" "+dateStr+"?"))window._rf.del(existing.id);return;}
+    var label=prompt("Add a label? (optional, e.g. 'League Night')")||"";
+    createShift({date:dateStr,dayName:dayName,startTime:window._rf.DEFAULT_START,endTime:window._rf.DEFAULT_END,label:label,slotsNeeded:4}).then(function(){return loadShifts();}).then(function(s){S.shifts=s;render();});
+  },
+  addSpecial:function(){
+    var dt=prompt("Enter date (YYYY-MM-DD, e.g. 2026-07-05):");
+    if(!dt||!dt.match(/\d{4}-\d{2}-\d{2}/))return;
+    var p=dt.split("-");var fd=p[0]+"/"+p[1]+"/"+p[2];
+    var days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    var dn=days[new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2])).getDay()];
+    var label=prompt("Label for this special shift? (e.g. 'Rugby - Lions vs Bulls')")||"";
+    createShift({date:fd,dayName:dn,startTime:window._rf.DEFAULT_START,endTime:window._rf.DEFAULT_END,label:label,slotsNeeded:4}).then(function(){return loadShifts();}).then(function(s){S.shifts=s;render();});
+  },
+  ics:function(date,start,end,label){
+    label=decodeURIComponent(label||"");
+    var p=date.split("/");var y=p[0],mo=p[1].padStart(2,"0"),dy=p[2].padStart(2,"0");
+    var s1=y+mo+dy+"T"+start.replace(":","")+"00";
+    var e1=y+mo+dy+"T"+end.replace(":","")+"00";
+    var now=new Date();
+    var stamp=now.getUTCFullYear()+String(now.getUTCMonth()+1).padStart(2,"0")+String(now.getUTCDate()).padStart(2,"0")+"T"+String(now.getUTCHours()).padStart(2,"0")+String(now.getUTCMinutes()).padStart(2,"0")+String(now.getUTCSeconds()).padStart(2,"0")+"Z";
+    var uid="msc-"+date.replace(/\//g,"")+"-"+start.replace(":","")+"@mscbar";
+    var summary="MSC Bar Shift"+(label&&label!=="MSC Bar Shift"?" - "+label:"");
+    var ics=[
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//Morningside Sports Club//Bar App//EN",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      "BEGIN:VTIMEZONE",
+      "TZID:Africa/Johannesburg",
+      "BEGIN:STANDARD",
+      "TZOFFSETFROM:+0200",
+      "TZOFFSETTO:+0200",
+      "TZNAME:SAST",
+      "DTSTART:19700101T000000",
+      "END:STANDARD",
+      "END:VTIMEZONE",
+      "BEGIN:VEVENT",
+      "UID:"+uid,
+      "DTSTAMP:"+stamp,
+      "DTSTART;TZID=Africa/Johannesburg:"+s1,
+      "DTEND;TZID=Africa/Johannesburg:"+e1,
+      "SUMMARY:"+summary,
+      "DESCRIPTION:Volunteering at Morningside Sports Club Bar",
+      "LOCATION:Morningside Sports Club\\, Durban",
+      "BEGIN:VALARM",
+      "TRIGGER:-PT60M",
+      "ACTION:DISPLAY",
+      "DESCRIPTION:Reminder: "+summary,
+      "END:VALARM",
+      "END:VEVENT",
+      "END:VCALENDAR"
+    ].join("\r\n");
+    try{
+      var blob=new Blob([ics],{type:"text/calendar;charset=utf-8"});
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement("a");a.href=url;a.download="msc-shift-"+date.replace(/\//g,"-")+".ics";
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      setTimeout(function(){URL.revokeObjectURL(url);},2000);
+    }catch(e){
+      window.open("data:text/calendar;charset=utf-8,"+encodeURIComponent(ics),"_blank");
+    }
+  }
+};
+render();initApp();
+</script>
+</body>
+</html>
