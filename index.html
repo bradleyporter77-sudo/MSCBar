@@ -194,7 +194,7 @@ const SEED=[
 ];
 const DEF_VOLS=["Andre","Johan","Pieter","Thabo","Sipho"];
 const CATS=[{id:"beer",i:"🍺",l:"Beer"},{id:"spirits",i:"🥃",l:"Spirits"},{id:"ciders",i:"🍎",l:"Ciders"},{id:"minerals",i:"🥤",l:"Minerals"},{id:"wine",i:"🍷",l:"Wine"},{id:"food",i:"🍕",l:"Food"}];
-let S={screen:"loading",vol:"",volId:"",pinInput:"",loginErr:false,regStep:0,regName:"",regVolId:"",regPin1:"",regPin2:"",regErr:"",regInviteCode:"",mem:true,cat:"beer",order:[],pay:"Cash",flash:false,famt:0,serr:false,products:[],changeSale:0,changePaid:"",coExpected:0,coActual:0,coSaved:false,esLoading:false,esSales:[],esActual:0,esSaved:false,sales:[],lrpt:false,rerr:false,allDates:[],selDate:null,ldDates:false,adminPinInput:"",adminPinErr:false,aSection:"products",editProd:null,newProdMode:false,editProdData:{cat:"beer",n:"",s:"",m:"",p:"",x:""},adminList:[],adminVolList:null,inactivityModal:false,menuCat:null,confirmEndShift:false,poscat:null,adminProdCat:null,spiritStock:{},reportMode:'vol',confirmPayModal:false,logModal:false,rosterModal:false,shifts:[],rosterAdminMode:false,rosterOffset:0,selectMode:false,selectedSales:[]};
+let S={screen:"loading",vol:"",volId:"",pinInput:"",loginErr:false,regStep:0,regName:"",regVolId:"",regPin1:"",regPin2:"",regErr:"",regInviteCode:"",mem:true,cat:"beer",order:[],pay:"Cash",flash:false,famt:0,serr:false,products:[],changeSale:0,changePaid:"",coExpected:0,coActual:0,coSaved:false,esLoading:false,esSales:[],esActual:0,esSaved:false,sales:[],lrpt:false,rerr:false,allDates:[],selDate:null,ldDates:false,adminPinInput:"",adminPinErr:false,aSection:"products",editProd:null,newProdMode:false,editProdData:{cat:"beer",n:"",s:"",m:"",p:"",x:""},adminList:[],adminVolList:null,inactivityModal:false,menuCat:null,confirmEndShift:false,poscat:null,adminProdCat:null,spiritStock:{},reportMode:'vol',confirmPayModal:false,logModal:false,rosterModal:false,shifts:[],rosterAdminMode:false,rosterOffset:0,notices:[],noticeModal:false,selectMode:false,selectedSales:[],activityLog:[],logLoading:false,logView:'activity',shiftsLoading:false};
 const set=p=>{Object.assign(S,p);render();};
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const tod=()=>new Date().toLocaleDateString("en-ZA");
@@ -249,6 +249,9 @@ const CHANGELOG=[
   {v:"1.1",date:"May 2026",changes:["Initial app build — basic POS","Beer, Spirits, Ciders, Minerals, Wine categories","Morningside Sports Club branding"]}
 ];
 
+const loadNotices=async()=>{const snap=await db.collection("notices").orderBy("date","asc").get();const today=tod();return snap.docs.map(d=>({id:d.id,...d.data()})).filter(n=>n.date>=today);};
+const createNotice=n=>db.collection("notices").add({...n,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+const deleteNotice=id=>db.collection("notices").doc(id).delete();
 const loadShifts=async()=>{const snap=await db.collection("shifts").orderBy("date","asc").limit(30).get();const today=tod();return snap.docs.map(d=>({id:d.id,...d.data()})).filter(s=>s.date>=today);};
 const createShift=shift=>db.collection("shifts").add({...shift,volunteers:[],createdAt:firebase.firestore.FieldValue.serverTimestamp()});
 const deleteShift=id=>db.collection("shifts").doc(id).delete();
@@ -267,7 +270,7 @@ const setSpiritTots=(g,val)=>db.collection("spiritStock").doc(g).set({tots:val},
 function render(){
   const el=document.getElementById("app");
   const sc={loading:rLoading,login:rLogin,register:rRegister,menu:rMenu,pos:rPOS,change:rChange,cashout:rCashout,endshift:rEndShift,report:rReport,adminPin:rAdminPin,admin:rAdmin,log:rLog};
-  el.innerHTML=(sc[S.screen]||rLogin)();
+  try{try{el.innerHTML=(sc[S.screen]||rLogin)();}catch(_re){console.error('Render error:',S.screen,_re);}}catch(_re){console.error('Render error for screen',S.screen,_re);el.innerHTML='<div style="color:var(--dn);padding:20px;font-size:14px">Render error: '+_re.message+'</div>';}
     if(S.confirmPayModal){const _t=S.order.reduce((a,i)=>a+i.price*i.qty,0);el.innerHTML+=`<div class="fov"><div class="fc"><div style="color:var(--gd);font-size:22px;font-weight:bold;margin-bottom:6px">Confirm Payment</div><div style="color:var(--mt);font-size:14px;margin-bottom:4px">Total</div><div style="color:var(--gd);font-size:40px;font-weight:bold;margin-bottom:24px">R${_t}</div><button style="width:100%;background:var(--gd);color:var(--bg);border:none;border-radius:12px;padding:16px;font-size:18px;font-weight:bold;font-family:Georgia,serif;cursor:pointer;margin-bottom:10px;" data-a="confirmPay" data-pay="Cash">💵 Cash</button><button style="width:100%;background:var(--sf);color:var(--tx);border:1px solid var(--bd);border-radius:12px;padding:16px;font-size:18px;font-family:Georgia,serif;cursor:pointer;margin-bottom:10px;" data-a="confirmPay" data-pay="Zapper">📱 Zapper</button><button style="width:100%;background:transparent;color:var(--mt);border:none;padding:10px;font-size:14px;font-family:Georgia,serif;cursor:pointer;" data-a="cancelPay">Cancel</button></div></div>`;}
   if(S.logModal){
     try{
@@ -386,7 +389,43 @@ function render(){
       el.innerHTML+="<div style=\"position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;flex-direction:column;overflow:hidden;\"><div style=\"background:var(--s2);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bd);flex-shrink:0;\"><span style=\"color:var(--gd);font-weight:bold;font-size:18px;\">📅 Roster</span><button onclick=\"window._rf.close()\" class=\"ib\">✕ Close</button></div><div style=\"flex:1;overflow-y:auto;padding:16px;\">"+_html+"</div></div>";
     }catch(_e){console.error(_e);el.innerHTML+="<div style=\"position:fixed;inset:0;background:var(--bg);z-index:300;padding:20px;\"><div style=\"color:var(--dn);\">Roster error: "+_e.message+"</div><button onclick=\"window._rf.close()\" style=\"color:var(--gd);background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:10px 20px;margin-top:16px;font-family:Georgia,serif;cursor:pointer;\">Close</button></div>";}
   }
-    if(S.inactivityModal)el.innerHTML+=`<div class="fov"><div class="fc"><div style="font-size:40px">⏰</div><div style="color:var(--gd);font-size:20px;font-weight:bold;margin-top:10px">Still there?</div><div style="color:var(--mt);font-size:13px;margin:10px 0 20px">30 minutes of inactivity</div><button class="done" style="width:100%;margin-bottom:10px" data-a="stillHere">I am still here</button><button class="cancel-btn" style="width:100%" data-a="goEndShift">Cash Out and Sign Out</button></div></div>`;
+    if(S.noticeModal){
+    try{
+      var _notices=S.notices||[];
+      var _nhtml="";
+      _nhtml+="<div style='color:var(--gd);font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;'>Active Notices</div>";
+      if(_notices.length){
+        _notices.forEach(function(n){
+          var _dp=n.date.split("/");
+          var _mon=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][parseInt(_dp[1])-1];
+          _nhtml+="<div style=\"background:var(--bg);border-radius:12px;overflow:hidden;margin-bottom:12px;border:1px solid var(--bd);\">";
+          if(n.imageUrl)_nhtml+="<img src=\""+n.imageUrl+"\" style=\"width:100%;max-height:180px;object-fit:cover;\" onerror=\"this.style.display='none'\">";
+          _nhtml+="<div style=\"padding:14px;\">";
+          _nhtml+="<div style=\"display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;\">";
+          _nhtml+="<div style=\"color:var(--gd);font-size:16px;font-weight:bold;flex:1;margin-right:8px;\">"+n.title+"</div>";
+          _nhtml+="<button onclick=\"window._nf.del('"+n.id+"')\" style=\"background:var(--db);color:var(--dn);border:1px solid var(--dd);border-radius:6px;padding:4px 8px;font-size:12px;font-family:Georgia,serif;cursor:pointer;flex-shrink:0;\">🗑️</button>";
+          _nhtml+="</div>";
+          _nhtml+="<div style=\"color:var(--mt);font-size:12px;margin-bottom:8px;\">📅 "+(_dp[2]|0)+" "+_mon+" "+_dp[0]+"</div>";
+          _nhtml+="<div style=\"color:var(--tx);font-size:14px;line-height:1.5;\">"+n.description+"</div>";
+          _nhtml+="</div></div>";
+        });
+      } else {
+        _nhtml+="<div style='color:var(--mt);font-size:14px;text-align:center;padding:16px;'>No active notices</div>";
+      }
+      _nhtml+="<div style=\"background:var(--bg);border-radius:12px;padding:14px;border:1px dashed var(--gd);margin-top:8px;\">";
+      _nhtml+="<div style=\"color:var(--gd);font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;\">+ Post New Notice</div>";
+      _nhtml+="<input id=\"_nt\" class=\"finp\" placeholder=\"Title...\" style=\"width:100%;margin-bottom:8px;font-size:14px;\">";
+      _nhtml+="<textarea id=\"_nd\" class=\"finp\" placeholder=\"Description...\" style=\"width:100%;margin-bottom:8px;font-size:14px;min-height:70px;resize:none;\"></textarea>";
+      _nhtml+="<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;\">";
+      _nhtml+="<div><div style=\"color:var(--mt);font-size:11px;margin-bottom:3px;\">EXPIRY DATE</div><input id=\"_ndate\" type=\"date\" class=\"finp\" style=\"font-size:14px;\"></div>";
+      _nhtml+="<div><div style=\"color:var(--mt);font-size:11px;margin-bottom:3px;\">IMAGE URL (optional)</div><input id=\"_nimg\" class=\"finp\" placeholder=\"https://...\" style=\"font-size:14px;\"></div>";
+      _nhtml+="</div>";
+      _nhtml+="<button onclick=\"window._nf.create()\" style=\"width:100%;background:var(--gd);color:var(--bg);border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:bold;font-family:Georgia,serif;cursor:pointer;\">Post Notice</button>";
+      _nhtml+="</div>";
+      el.innerHTML+="<div style=\"position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;flex-direction:column;overflow:hidden;\"><div style=\"background:var(--s2);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bd);flex-shrink:0;\"><span style=\"color:var(--gd);font-weight:bold;font-size:18px;\">📢 Notice Board</span><button onclick=\"window._nf.close()\" class=\"ib\">✕ Close</button></div><div style=\"flex:1;overflow-y:auto;padding:16px;\">"+_nhtml+"</div></div>";
+    }catch(_e){console.error(_e);}
+  }
+  if(S.inactivityModal)el.innerHTML+=`<div class="fov"><div class="fc"><div style="font-size:40px">⏰</div><div style="color:var(--gd);font-size:20px;font-weight:bold;margin-top:10px">Still there?</div><div style="color:var(--mt);font-size:13px;margin:10px 0 20px">30 minutes of inactivity</div><button class="done" style="width:100%;margin-bottom:10px" data-a="stillHere">I am still here</button><button class="cancel-btn" style="width:100%" data-a="goEndShift">Cash Out and Sign Out</button></div></div>`;
   hook();
 }
 function rLoading(){return'<div class="ldg" style="padding-top:40vh">Loading...</div>';}
@@ -405,8 +444,11 @@ function rRegister(){
   return`<div class="pin-wrap"><div style="font-size:36px;margin-bottom:10px">🔐</div><div class="reg-title">${isP2?`Hi ${esc(S.regName)}!`:"Confirm PIN"}</div><div class="reg-sub">${isP2?"Choose a 4-digit PIN":"Enter your PIN again to confirm"}</div><div class="pin-dots">${dots}</div>${S.regErr?`<div class="pin-err">${esc(S.regErr)}</div>`:""}<div class="numpad">${nk}</div>${isP2?`<button class="cancel-btn" style="max-width:320px;margin-top:14px" data-a="goLogin">Cancel</button>`:""}</div>`;
 }
 function rMenu(){
-  return`<div class="scr" style="justify-content:center;align-items:center;">
-    <div style="width:100%;padding:28px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:24px;">
+  const _an=S.notices||[];
+  const _nc=_an.length?`<div style="width:100%;max-width:340px;margin-bottom:16px;"><div style="color:var(--gd);font-size:11px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">📢 Notice Board</div>${_an.map(n=>{const dp=n.date.split("/");const mon=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][parseInt(dp[1])-1];const img=n.imageUrl?`<img src="${n.imageUrl}" style="width:100%;max-height:140px;object-fit:cover;border-radius:8px 8px 0 0;display:block;" onerror="this.style.display='none'">`:"";
+return`<div style="background:var(--s2);border-radius:10px;overflow:hidden;margin-bottom:10px;border-left:3px solid var(--gd);">${img}<div style="padding:10px 12px;"><div style="color:var(--gd);font-size:14px;font-weight:bold;">${esc(n.title)}</div><div style="color:var(--mt);font-size:11px;margin:2px 0 4px;">📅 ${parseInt(dp[2])} ${mon}</div><div style="color:var(--tx);font-size:13px;">${esc(n.description)}</div></div></div>`;}).join("")}</div>`:"";
+return`<div class="scr" style="justify-content:center;align-items:center;">
+    <div style="width:100%;padding:28px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:24px;">${_nc}
       <div style="text-align:center;">
         <div style="margin-bottom:12px;"><svg width="52" height="60" viewBox="0 0 70 80" xmlns="http://www.w3.org/2000/svg"><path d="M35 65 Q5 50 8 18 Q16 46 35 56 Z" fill="#236b40"/><path d="M35 65 Q65 50 62 18 Q54 46 35 56 Z" fill="#236b40"/><path d="M35 62 Q14 46 16 26 Q22 48 35 54 Z" fill="#2e8a52"/><path d="M35 62 Q56 46 54 26 Q48 48 35 54 Z" fill="#2e8a52"/><path d="M35 58 Q20 42 22 28 Q27 46 35 52 Z" fill="#3daa68"/><path d="M35 58 Q50 42 48 28 Q43 46 35 52 Z" fill="#3daa68"/><path d="M35 54 Q30 35 35 8 Q40 35 35 54 Z" fill="#52c47c"/><line x1="35" y1="8" x2="35" y2="0" stroke="#E8801A" stroke-width="2.5" stroke-linecap="round"/><circle cx="35" cy="0" r="2.5" fill="#E8801A"/></svg></div>
         <div style="color:var(--gn);font-size:22px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;">Morningside</div>
@@ -595,7 +637,7 @@ function rAdminPin(){
 }
 function rAdmin(){
   const modal=(S.editProd!==null||S.newProdMode)?rEditModal():"";
-  return`<div class="scr"><div class="tbar"><span style="color:var(--gd);font-weight:bold;font-size:16px">⚙️ Admin Panel</span><div style="display:flex;gap:8px;"><button class="ib" data-a="adminReports">📊</button><button class="ib" onclick="S.logModal=true;render()">📋 Log</button><button class="ib" onclick="window._rf.open(true)">📅 Roster</button><button class="ib" data-a="goLogin">Exit</button></div></div><div class="atabs"><button class="atab ${S.aSection==="products"?"on":""}" data-a="aTab" data-v="products">Products</button><button class="atab ${S.aSection==="volunteers"?"on":""}" data-a="aTab" data-v="volunteers">Volunteers</button><button class="atab ${S.aSection==="admins"?"on":""}" data-a="aTab" data-v="admins">Admins</button></div><div class="scroll">${S.aSection==="products"?rAProds():S.aSection==="volunteers"?rAVols():rAAdmins()}</div></div>${modal}`;
+  return`<div class="scr"><div class="tbar"><span style="color:var(--gd);font-weight:bold;font-size:16px">⚙️ Admin Panel</span><div style="display:flex;gap:8px;"><button class="ib" data-a="adminReports">📊</button><button class="ib" onclick="window._nf.open()">📢</button><button class="ib" onclick="S.logModal=true;render()">📋 Log</button><button class="ib" onclick="window._rf.open(true)">📅 Roster</button><button class="ib" data-a="goLogin">Exit</button></div></div><div class="atabs"><button class="atab ${S.aSection==="products"?"on":""}" data-a="aTab" data-v="products">Products</button><button class="atab ${S.aSection==="volunteers"?"on":""}" data-a="aTab" data-v="volunteers">Volunteers</button><button class="atab ${S.aSection==="admins"?"on":""}" data-a="aTab" data-v="admins">Admins</button></div><div class="scroll">${S.aSection==="products"?rAProds():S.aSection==="volunteers"?rAVols():rAAdmins()}</div></div>${modal}`;
 }
 function rAProds(){
   const cgrp={};S.products.forEach(p=>{if(!cgrp[p.cat])cgrp[p.cat]=[];cgrp[p.cat].push(p);});
@@ -619,7 +661,7 @@ function rAProds(){
         else if(lowCount>0)note=`<div style="color:var(--gd);font-size:13px;margin-top:4px">${lowCount} running low</div>`;
         else note=`<div style="color:var(--gn);font-size:13px;margin-top:4px">All in stock</div>`;
       }
-      return`<button style="background:var(--sf);border:1px solid var(--bd);border-radius:16px;padding:22px 16px;text-align:left;width:100%;display:flex;align-items:center;gap:16px;margin-bottom:12px;" data-a="setAdminProdCat" data-cat="${c.id}">
+      return`<button style="background:var(--sf);border:1px solid var(--bd);border-radius:16px;padding:22px 16px;text-align:left;width:100%;display:flex;align-items:center;gap:16px;margin-bottom:12px;" onclick="S.adminProdCat='${c.id}';render()" data-a="setAdminProdCat" data-cat="${c.id}">
         <span style="font-size:40px;">${c.i}</span>
         <div style="flex:1;">
           <div style="color:var(--gd);font-size:22px;font-weight:bold;">${c.l}</div>
@@ -632,11 +674,36 @@ function rAProds(){
   }
 
   const cat=CATS.find(c=>c.id===S.adminProdCat);
-  const header=`<button class="back-btn" data-a="clearAdminProdCat">← All Categories</button><div class="sec-lbl">${cat?cat.i+" "+cat.l:""}</div>`;
+  const header=`<button class="back-btn" onclick="S.adminProdCat=null;render()" data-a="clearAdminProdCat">← All Categories</button><div class="sec-lbl">${cat?cat.i+" "+cat.l:""}</div>`;
 
   // SPIRITS — grouped by spirit, shared tot pool from bottles
-  if(S.adminProdCat==="wine"){const wgroups=["Red","White","Rose","Champagne"];const ungrouped=ps.filter(p=>!wgroups.includes(p.s));const wcards=wgroups.map(g=>{const ws=ps.filter(p=>p.s===g);if(!ws.length)return"";return`<div class="sec-lbl" style="margin-top:16px">${g==="Champagne"?"🍾":g==="Red"?"🍷":g==="White"?"🥂":"🌸"} ${g}</div>${ws.map(p=>{const stk=p.stock||0;const sc=stk<=0?"var(--dn)":stk<=5?"var(--gd)":"var(--gn)";const sl=stk<=0?"OUT":"x"+stk;return`<div class="pitem"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="flex:1"><div style="color:var(--tx);font-size:15px;font-weight:bold">${esc(p.n)}</div><div style="color:var(--mt);font-size:12px;margin:4px 0">M: R${p.m} | NM: R${p.p}${p.x?" | "+esc(p.x):""}</div></div><div style="text-align:center;min-width:52px"><div style="color:${sc};font-size:26px;font-weight:bold;line-height:1">${stk}</div><div style="color:${sc};font-size:10px;text-transform:uppercase;letter-spacing:1px">${sl}</div></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;"><div style="display:flex;align-items:center;gap:8px;"><button class="qb" style="width:34px;height:34px;font-size:20px;border:1px solid var(--bd);" data-a="stkDn" data-id="${p.id}">-</button><button style="background:var(--hv);color:var(--gd);border:1px solid var(--bd);border-radius:8px;padding:6px 12px;font-size:13px;font-family:Georgia,serif;cursor:pointer;" data-a="stkSet" data-id="${p.id}" data-name="${esc(p.n)}">Set</button><button class="qb" style="width:34px;height:34px;font-size:20px;border:1px solid var(--bd);" data-a="stkUp" data-id="${p.id}">+</button></div><div class="pbtns"><button class="ebtn" data-a="editP" data-id="${p.id}">Edit</button><button class="dbtn" data-a="delP" data-id="${p.id}">Delete</button></div></div></div>`;}).join("")}`;}).join("");const ungroupedCards=ungrouped.map(p=>{const stk=p.stock||0;const sc=stk<=0?"var(--dn)":stk<=5?"var(--gd)":"var(--gn)";const sl=stk<=0?"OUT":"x"+stk;return`<div class="pitem"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="flex:1"><div style="color:var(--tx);font-size:15px;font-weight:bold">${esc(p.n)}</div><div style="color:var(--mt);font-size:12px;margin:4px 0">M: R${p.m} | NM: R${p.p}${p.x?" | "+esc(p.x):""}</div></div><div style="text-align:center;min-width:52px"><div style="color:${sc};font-size:26px;font-weight:bold;line-height:1">${stk}</div><div style="color:${sc};font-size:10px;text-transform:uppercase;letter-spacing:1px">${sl}</div></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;"><div style="display:flex;align-items:center;gap:8px;"><button class="qb" style="width:34px;height:34px;font-size:20px;border:1px solid var(--bd);" data-a="stkDn" data-id="${p.id}">-</button><button style="background:var(--hv);color:var(--gd);border:1px solid var(--bd);border-radius:8px;padding:6px 12px;font-size:13px;font-family:Georgia,serif;cursor:pointer;" data-a="stkSet" data-id="${p.id}" data-name="${esc(p.n)}">Set</button><button class="qb" style="width:34px;height:34px;font-size:20px;border:1px solid var(--bd);" data-a="stkUp" data-id="${p.id}">+</button></div><div class="pbtns"><button class="ebtn" data-a="editP" data-id="${p.id}">Edit</button><button class="dbtn" data-a="delP" data-id="${p.id}">Delete</button></div></div></div>`;}).join("");return header+wcards+ungroupedCards+`<button class="add-pbtn" data-a="newP">+ Add New Product</button>`;}
-  if(S.adminProdCat==="spirits"){
+  // SPIRITS — grouped by spirit, shared tot pool from bottles
+  if(S.adminProdCat==="wine"){
+    const wps=(cgrp["wine"]||[]).sort((a,b)=>(a.n||"").localeCompare(b.n||""));
+    const wgroups=["Red","White","Rose","Champagne"];
+    const wicons={"Red":"🍷","White":"🥂","Rose":"🌸","Champagne":"🍾"};
+    let whtml="";
+    wgroups.forEach(function(g){
+      const ws=wps.filter(function(p){return p.s===g;});
+      if(!ws.length)return;
+      whtml+=`<div class="sec-lbl" style="margin-top:16px">${wicons[g]} ${g}</div>`;
+      ws.forEach(function(p){
+        const stk=p.stock||0;
+        const sc=stk<=0?"var(--dn)":stk<=5?"var(--gd)":"var(--gn)";
+        const sl=stk<=0?"OUT":"x"+stk;
+        whtml+=`<div class="pitem"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="flex:1"><div style="color:var(--tx);font-size:15px;font-weight:bold">${esc(p.n)}</div><div style="color:var(--mt);font-size:12px;margin:4px 0">M: R${p.m} | NM: R${p.p}${p.x?" | "+esc(p.x):""}</div></div><div style="text-align:center;min-width:52px"><div style="color:${sc};font-size:26px;font-weight:bold;line-height:1">${stk}</div><div style="color:${sc};font-size:10px;text-transform:uppercase;letter-spacing:1px">${sl}</div></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;"><div style="display:flex;align-items:center;gap:8px;"><button class="qb" style="width:34px;height:34px;font-size:20px;border:1px solid var(--bd);" data-a="stkDn" data-id="${p.id}">-</button><button style="background:var(--hv);color:var(--gd);border:1px solid var(--bd);border-radius:8px;padding:6px 12px;font-size:13px;font-family:Georgia,serif;cursor:pointer;" data-a="stkSet" data-id="${p.id}" data-name="${esc(p.n)}">Set</button><button class="qb" style="width:34px;height:34px;font-size:20px;border:1px solid var(--bd);" data-a="stkUp" data-id="${p.id}">+</button></div><div class="pbtns"><button class="ebtn" data-a="editP" data-id="${p.id}">Edit</button><button class="dbtn" data-a="delP" data-id="${p.id}">Delete</button></div></div></div>`;
+      });
+    });
+    const ungrouped=wps.filter(function(p){return!wgroups.includes(p.s);});
+    if(ungrouped.length){
+      whtml+=`<div class="sec-lbl" style="margin-top:16px">Other</div>`;
+      ungrouped.forEach(function(p){
+        const stk=p.stock||0;const sc=stk<=0?"var(--dn)":stk<=5?"var(--gd)":"var(--gn)";const sl=stk<=0?"OUT":"x"+stk;
+        whtml+=`<div class="pitem"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="flex:1"><div style="color:var(--tx);font-size:15px;font-weight:bold">${esc(p.n)}</div><div style="color:var(--mt);font-size:12px;margin:4px 0">M: R${p.m} | NM: R${p.p}${p.x?" | "+esc(p.x):""}</div></div><div style="text-align:center;min-width:52px"><div style="color:${sc};font-size:26px;font-weight:bold;line-height:1">${stk}</div><div style="color:${sc};font-size:10px;text-transform:uppercase;letter-spacing:1px">${sl}</div></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;"><div style="display:flex;align-items:center;gap:8px;"><button class="qb" style="width:34px;height:34px;font-size:20px;border:1px solid var(--bd);" data-a="stkDn" data-id="${p.id}">-</button><button style="background:var(--hv);color:var(--gd);border:1px solid var(--bd);border-radius:8px;padding:6px 12px;font-size:13px;font-family:Georgia,serif;cursor:pointer;" data-a="stkSet" data-id="${p.id}" data-name="${esc(p.n)}">Set</button><button class="qb" style="width:34px;height:34px;font-size:20px;border:1px solid var(--bd);" data-a="stkUp" data-id="${p.id}">+</button></div><div class="pbtns"><button class="ebtn" data-a="editP" data-id="${p.id}">Edit</button><button class="dbtn" data-a="delP" data-id="${p.id}">Delete</button></div></div></div>`;
+      });
+    }
+    return header+whtml+`<button class="add-pbtn" data-a="newP">+ Add New Product</button>`;
+  }  if(S.adminProdCat==="spirits"){
     const ps=(cgrp.spirits||[]).sort((a,b)=>(a.ord||0)-(b.ord||0));
     const byGrp={};
     ps.forEach(p=>{const g=p.grp||"other";if(!byGrp[g])byGrp[g]=[];byGrp[g].push(p);});Object.values(byGrp).forEach(arr=>arr.sort((a,b)=>a.n.localeCompare(b.n)));
@@ -833,7 +900,7 @@ async function doRp2(v){
     else{await setVolPin(S.regVolId,S.regPin1);const pr=await loadProds();setTimeout(()=>{set({vol:S.regName,volId:S.regVolId,screen:"menu",products:pr,order:[],cat:"beer",regStep:0,regPin1:"",regPin2:""});history.pushState({loggedIn:true},'');},200);}
   }
 }
-function doLogout(){set({screen:"login",vol:"",volId:"",order:[],sales:[],pinInput:"",loginErr:false,inactivityModal:false,selDate:null,esSales:[],esSaved:false,esActual:0,confirmPayModal:false,logModal:false,rosterModal:false,shifts:[],rosterAdminMode:false,rosterOffset:0,logView:'activity',activityLog:[],logLoading:false});}
+function doLogout(){set({screen:"login",vol:"",volId:"",order:[],sales:[],pinInput:"",loginErr:false,inactivityModal:false,selDate:null,esSales:[],esSaved:false,esActual:0,confirmPayModal:false,logModal:false,rosterModal:false,shifts:[],rosterAdminMode:false,rosterOffset:0,notices:[],noticeModal:false,logView:'activity',activityLog:[],logLoading:false});}
 function doAP(id){const f=S.products.find(x=>x.id===id);if(!f)return;
   if(f.grp){if((S.spiritStock[f.grp]||0)<(f.tot||1))return;}
   else if(f.stock!==undefined&&f.stock!==null&&f.stock<=0)return;
@@ -1066,13 +1133,14 @@ async function initApp(){
         const _vol=await volByName(_invData.name);
         if(_vol&&!_vol.pin){
           window.history.replaceState({},"",window.location.pathname);
-          set({products:prods,spiritStock,screen:"register",regStep:2,regName:_vol.name,regVolId:_vol.id,regPin1:"",regPin2:"",regErr:"",regInviteCode:_inv});
+          set({products:prods,spiritStock,notices,screen:"register",regStep:2,regName:_vol.name,regVolId:_vol.id,regPin1:"",regPin2:"",regErr:"",regInviteCode:_inv});
           return;
         }
       }
     }catch(_e){console.error("Invite error:",_e);}
   }
-  set({products:prods,spiritStock,screen:"login"});
+  let notices=[];try{notices=await loadNotices();}catch(e){}
+  set({products:prods,spiritStock,notices,screen:"login"});
   }catch(e){console.error("Init:",e);set({products:SEED.map(p=>({...p})),screen:"login"});}
 }
 window.addEventListener('popstate',function(){
@@ -1089,6 +1157,20 @@ window.addEventListener('popstate',function(){
   }
 });
 // Roster global functions
+window._nf={
+  open:function(){S.noticeModal=true;render();},
+  close:function(){S.noticeModal=false;render();},
+  del:function(id){if(!confirm("Delete this notice?"))return;deleteNotice(id).then(function(){return loadNotices();}).then(function(n){S.notices=n;render();});},
+  create:function(){
+    var t=document.getElementById("_nt")&&document.getElementById("_nt").value.trim();
+    var d=document.getElementById("_nd")&&document.getElementById("_nd").value.trim();
+    var dt=document.getElementById("_ndate")&&document.getElementById("_ndate").value;
+    var img=document.getElementById("_nimg")&&document.getElementById("_nimg").value.trim();
+    if(!t||!d||!dt){alert("Title, description and date are required");return;}
+    var p=dt.split("-");var fd=p[0]+"/"+p[1]+"/"+p[2];
+    createNotice({title:t,description:d,date:fd,imageUrl:img||""}).then(function(){return loadNotices();}).then(function(n){S.notices=n;render();addLog("📢","Admin","Posted notice: "+t);});
+  }
+};
 window._rf={
   DEFAULT_START:"16:30",
   DEFAULT_END:"22:00",
